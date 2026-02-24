@@ -347,7 +347,7 @@ export default function DashboardPage() {
                         <div className="flex items-center gap-2">
                           <p className="text-sm font-medium truncate">{user.name}</p>
                           {user.zkVerified && (
-                            <Shield className="w-3 h-3 text-success flex-shrink-0" title="Verificado con ZK Proof" />
+                            <span title="Verificado con ZK Proof"><Shield className="w-3 h-3 text-success flex-shrink-0" /></span>
                           )}
                         </div>
                         {/* Hojas de ahorro */}
@@ -413,7 +413,7 @@ export default function DashboardPage() {
                         cx="50%"
                         cy="50%"
                         labelLine={false}
-                        label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                        label={({ name, percent }) => `${name} ${((percent ?? 0) * 100).toFixed(0)}%`}
                         outerRadius={100}
                         fill="#8884d8"
                         dataKey="value"
@@ -428,7 +428,7 @@ export default function DashboardPage() {
                           border: "1px solid rgb(var(--color-border))",
                           borderRadius: "8px",
                         }}
-                        formatter={(value: number) => `${value} kWh`}
+                        formatter={(value) => `${value} kWh`}
                       />
                       <Legend />
                     </PieChart>
