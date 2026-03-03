@@ -212,7 +212,7 @@ Learn more: [Drips Wave for Contributors](https://docs.drips.network/wave/contri
 
 **Q2 2026**
 - Deploy to Stellar mainnet
-- Pilot with 1-2 cooperative communities (Spain)
+- Pilot with 1-2 cooperative communities
 - Smart meter hardware integrations
 
 **Q3 2026**
@@ -225,6 +225,8 @@ Learn more: [Drips Wave for Contributors](https://docs.drips.network/wave/contri
 ## License
 
 Apache-2.0 — See [LICENSE](LICENSE) for details.
+
+Alebrije 2026
 
 ---
 
