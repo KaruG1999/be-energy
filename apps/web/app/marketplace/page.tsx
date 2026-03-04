@@ -115,27 +115,12 @@ export default function MarketplacePage() {
 
   const handleCreateOffer = () => {
     const amount = Number.parseFloat(newOfferAmount)
-    const price = Number.parseFloat(newOfferPrice)
     const xlmAmount = Number.parseFloat(calculateTotal())
-
-    const newOffer: Offer = {
-      id: Date.now(),
-      seller: address || "unknow",
-      sellerShort: address ? `${address.slice(0,4)}...${address.slice(-4)}` : "unknow",
-      amount,
-      pricePerKwh: price,
-      total: xlmAmount,
-    }
-
-      const updatedOffers = [...offers, newOffer]
-      setOffers(updatedOffers)
-      localStorage.setItem("marketplaceOffers", JSON.stringify(updatedOffers))
-
-      setSuccessData({ type: "venta", amount, xlmAmount })
-      setShowCreateModal(false)
-      setShowSuccessModal(true)
-      setNewOfferAmount("")
-      setNewOfferPrice("")
+    setSuccessData({ type: "venta", amount, xlmAmount })
+    setShowCreateModal(false)
+    setShowSuccessModal(true)
+    setNewOfferAmount("")
+    setNewOfferPrice("")
   }
 
   const handleBuy = (offer: Offer) => {
@@ -145,7 +130,7 @@ export default function MarketplacePage() {
 
   const handleConfirmBuy = async () => {
     if (selectedOffer) {
-      try{ 
+      try {
         const txHash = await transfer(selectedOffer.seller, selectedOffer.amount)
 
         const updatedOffers = offers.filter((offer) => offer.id !== selectedOffer.id)
@@ -174,16 +159,16 @@ export default function MarketplacePage() {
           type: "compra",
           amount: selectedOffer.amount,
           xlmAmount: selectedOffer.total,
-          txHash,
+          txHash
         })
         setShowBuyModal(false)
         setShowSuccessModal(true)
       } catch (err) {
-        console.error("Error en la compra: ", err)
+        console.log("Error en la compra: ", err)
+        setShowBuyModal(false)
       }
     }
   }
-
   const calculateTotal = () => {
     if (newOfferAmount && newOfferPrice) {
       return (Number.parseFloat(newOfferAmount) * Number.parseFloat(newOfferPrice)).toFixed(2)
