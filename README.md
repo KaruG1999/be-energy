@@ -1,13 +1,13 @@
 # BeEnergy ⚡🐝
 
-**Decentralized P2P energy marketplace for solar-powered communities on Stellar**
+**Neighborhood solar energy marketplace on Stellar**
 
 [![Deployed on Vercel](https://img.shields.io/badge/deployed-vercel-black)](https://be-energy-six.vercel.app)
 [![Stellar Wave](https://img.shields.io/badge/Stellar-Wave%20%232-blueviolet)](https://www.drips.network/wave)
 [![DoraHacks](https://img.shields.io/badge/DoraHacks-Featured-orange)](https://dorahacks.io/buidl/36793)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue)](LICENSE)
 
-BeEnergy enables neighbors to tokenize and trade solar energy directly, bypassing centralized utilities. Built for cooperative housing communities with shared solar infrastructure.
+BeEnergy turns solar surplus into digital credits that neighbors can sell, share, or save. The local electric cooperative validates generation and guarantees the process.
 
 ---
 
@@ -27,7 +27,7 @@ BeEnergy creates **local energy marketplaces** where:
 - ✅ Smart contracts ensure **transparent, fair distribution**
 - ✅ Communities gain **energy independence**
 
-**Target:** Cooperative housing communities (3-10 homes per "Hive") in Spain, Latin America, and beyond.
+**Target:** Cooperative housing communities (3-10 homes per "Hive") in Argentina.
 
 ---
 
@@ -86,7 +86,7 @@ be-energy/
     └── scripts/       # Automation scripts
 ```
 
-Powered by **Turborepo** + **npm workspaces**.
+Powered by **Turborepo** + **pnpm workspaces**.
 
 ---
 
@@ -94,8 +94,8 @@ Powered by **Turborepo** + **npm workspaces**.
 
 ### Prerequisites
 
-- **Node.js** v22+ (we use v22 for Corepack compatibility)
-- **npm** v10+ (comes with Node)
+- **Node.js** v22+
+- **pnpm** v10+ (install via `corepack enable`)
 - **Rust** + Cargo (for contracts)
 - **Windows only:** Visual Studio Build Tools with the **"Desktop development with C++"** workload
    Required to compile native Rust dependencies (e.g., to run `cargo test`).
@@ -107,13 +107,13 @@ Powered by **Turborepo** + **npm workspaces**.
 ```bash
 git clone https://github.com/BuenDia-Builders/be-energy.git
 cd be-energy
-npm install
+pnpm install
 ```
 
 ### Run Development Server
 
 ```bash
-npm run dev
+pnpm dev
 ```
 
 Frontend runs on: `http://localhost:3000`
@@ -139,21 +139,19 @@ Outputs: `target/wasm32v1-none/release/*.wasm`
 | Styling | Tailwind CSS v4 + shadcn/ui |
 | Wallet | Freighter + Stellar Wallets Kit |
 | Deployment | Vercel |
-| Monorepo | Turborepo + npm |
+| Monorepo | Turborepo + pnpm |
 
 ---
 
 ## Contributing
 
-We're participating in **Stellar Drips Wave #2** (Feb 19-26, 2026). Contributors can earn rewards!
+We welcome contributions from the community!
 
 ### How to Contribute
 
 1. Browse [open issues](https://github.com/BuenDia-Builders/be-energy/issues)
-2. Look for the `Stellar Wave` label
-3. Comment to claim an issue
-4. Fork, code, and submit a PR
-5. Earn rewards when merged!
+2. Comment to claim an issue
+3. Fork, code, and submit a PR to `develop`
 
 ### Development Workflow
 
@@ -167,18 +165,15 @@ git checkout develop
 git checkout -b feat/your-feature
 
 # 3. Make changes and test
-npm install
-npm run dev
+pnpm install
+pnpm dev
 
 # 4. Submit PR to develop branch
 ```
 
 **Branch Structure:**
 - `main` → Production (protected)
-- `staging` → Pre-production (protected)
 - `develop` → Active development
-
-Learn more: [Drips Wave for Contributors](https://docs.drips.network/wave/contributors)
 
 ---
 
@@ -226,8 +221,6 @@ Learn more: [Drips Wave for Contributors](https://docs.drips.network/wave/contri
 
 Apache-2.0 — See [LICENSE](LICENSE) for details.
 
-Alebrije 2026
-
 ---
 
-**Built with ❤️ on Stellar**
+**Built with ❤️ on Stellar | Código Alebrije 2026**
