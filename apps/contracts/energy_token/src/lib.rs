@@ -453,4 +453,52 @@ mod test {
         assert_eq!(client.balance(&user), 50_0000000);
         assert_eq!(client.total_supply(), 50_0000000);
     }
+
+    #[test]
+    fn test_mint_zero_amount() {
+        let env = Env::default();
+        env.mock_all_auths();
+        let (client, _, distribution) = setup(&env);
+        let user = Address::generate(&env);
+
+        client.mint_energy(&user, &0, &distribution);
+
+        assert_eq!(client.balance(&user), 0);
+        assert_eq!(client.total_supply(), 0);
+    }
+
+    #[test]
+    fn test_transfer_to_self() {
+        let env = Env::default();
+        env.mock_all_auths();
+        let (client, _, distribution) = setup(&env);
+        let user = Address::generate(&env);
+
+        client.mint_energy(&user, &100_0000000, &distribution);
+        client.transfer(&user, &user, &30_0000000);
+
+        assert_eq!(client.balance(&user), 100_0000000);
+        assert_eq!(client.total_supply(), 100_0000000);
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_grant_minter_not_admin() {
+        let env = Env::default();
+        // No mock_all_auths — admin.require_auth() will fail
+        let (client, _, _) = setup(&env);
+        let new_minter = Address::generate(&env);
+
+        client.grant_minter(&new_minter);
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_revoke_minter_not_admin() {
+        let env = Env::default();
+        // No mock_all_auths — admin.require_auth() will fail
+        let (client, _, distribution) = setup(&env);
+
+        client.revoke_minter(&distribution);
+    }
 }

@@ -457,6 +457,43 @@ mod test {
         (client, admin, token_contract, member1, member2)
     }
 
+    // Helper: setup with real energy_token contract for cross-contract tests
+    fn setup_with_real_token<'a>(
+        env: &'a Env,
+    ) -> (
+        EnergyDistributionClient<'a>,
+        energy_token::EnergyTokenClient<'a>,
+        Address,
+        Address,
+        Address,
+    ) {
+        let admin = Address::generate(env);
+
+        // Register distribution contract first to get its address
+        let dist_contract_id = env.register(EnergyDistribution, ());
+        let dist_client = EnergyDistributionClient::new(env, &dist_contract_id);
+
+        // Register real energy token with distribution contract as minter
+        let token_contract_id = env.register(
+            energy_token::EnergyToken,
+            (&admin, &dist_contract_id, &0i128),
+        );
+        let token_client = energy_token::EnergyTokenClient::new(env, &token_contract_id);
+
+        // Initialize distribution with real token and 1 required approval
+        dist_client.initialize(&admin, &token_contract_id, &1);
+
+        // Setup members: member1=60%, member2=40%
+        let member1 = Address::generate(env);
+        let member2 = Address::generate(env);
+        let approvers = vec![env, admin.clone()];
+        let members = vec![env, member1.clone(), member2.clone()];
+        let percents = vec![env, 60, 40];
+        dist_client.add_members_multisig(&approvers, &members, &percents);
+
+        (dist_client, token_client, admin, member1, member2)
+    }
+
     // ========================================================================
     // Initialization
     // ========================================================================
@@ -773,5 +810,97 @@ mod test {
         assert_eq!(client.get_required_approvals(), None);
         assert!(!client.are_members_initialized());
         assert_eq!(client.get_total_generated(), 0);
+    }
+
+    // ========================================================================
+    // Cross-Contract Tests (with real energy_token)
+    // ========================================================================
+
+    #[test]
+    fn test_record_generation_success() {
+        let env = Env::default();
+        env.mock_all_auths();
+        let (dist_client, token_client, _, member1, member2) = setup_with_real_token(&env);
+
+        // Generate 100 kWh (with 7 decimals)
+        let result = dist_client.try_record_generation(&100_0000000);
+        assert!(result.is_ok());
+
+        // member1 (60%) should receive 60 HDROP
+        assert_eq!(token_client.balance(&member1), 60_0000000);
+        // member2 (40%) should receive 40 HDROP
+        assert_eq!(token_client.balance(&member2), 40_0000000);
+        assert_eq!(dist_client.get_total_generated(), 100_0000000);
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_record_generation_no_auth_panics() {
+        let env = Env::default();
+        // No mock_all_auths — auth is enforced
+
+        // Register bare distribution contract (no initialize)
+        let dist_contract_id = env.register(EnergyDistribution, ());
+        let dist_client = EnergyDistributionClient::new(&env, &dist_contract_id);
+
+        // Panics: Admin not set, and even if it were, require_auth() would fail
+        dist_client.record_generation(&100_0000000);
+    }
+
+    #[test]
+    fn test_total_generated_accumulates() {
+        let env = Env::default();
+        env.mock_all_auths();
+        let (dist_client, token_client, _, member1, member2) = setup_with_real_token(&env);
+
+        // Three generations
+        dist_client.record_generation(&50_0000000);
+        dist_client.record_generation(&30_0000000);
+        dist_client.record_generation(&20_0000000);
+
+        // Total should accumulate: 50 + 30 + 20 = 100
+        assert_eq!(dist_client.get_total_generated(), 100_0000000);
+
+        // member1 (60%): 30 + 18 + 12 = 60 HDROP
+        assert_eq!(token_client.balance(&member1), 60_0000000);
+        // member2 (40%): 20 + 12 + 8 = 40 HDROP
+        assert_eq!(token_client.balance(&member2), 40_0000000);
+    }
+
+    #[test]
+    fn test_add_members_multisig_called_twice() {
+        let env = Env::default();
+        env.mock_all_auths();
+        let (client, admin, _) = setup(&env);
+
+        let m1 = Address::generate(&env);
+        let m2 = Address::generate(&env);
+        let m3 = Address::generate(&env);
+
+        // First call: m1=60%, m2=40%
+        let approvers1 = vec![&env, m1.clone(), m2.clone(), admin.clone()];
+        let members1 = vec![&env, m1.clone(), m2.clone()];
+        let percents1 = vec![&env, 60, 40];
+        client.add_members_multisig(&approvers1, &members1, &percents1);
+
+        // Second call: m2=70%, m3=30% (overwrites the member list)
+        let approvers2 = vec![&env, m2.clone(), m3.clone(), admin.clone()];
+        let members2 = vec![&env, m2.clone(), m3.clone()];
+        let percents2 = vec![&env, 70, 30];
+        client.add_members_multisig(&approvers2, &members2, &percents2);
+
+        // The member list is overwritten
+        assert_eq!(client.get_member_list().len(), 2);
+
+        // New members are set correctly
+        assert!(client.is_member(&m2));
+        assert!(client.is_member(&m3));
+        assert_eq!(client.get_member_percent(&m2), Some(70));
+        assert_eq!(client.get_member_percent(&m3), Some(30));
+
+        // m1 is no longer in the member list but its persistent storage is NOT cleaned up
+        // (old Member(m1) and MemberPercent(m1) entries remain in persistent storage)
+        assert!(client.is_member(&m1)); // Still true! Persistent storage not cleaned
+        assert_eq!(client.get_member_percent(&m1), Some(60)); // Old percent still there
     }
 }

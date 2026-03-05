@@ -246,4 +246,14 @@ mod test {
         }
         assert_eq!(client.get_proposal_count(), 10);
     }
+
+    #[test]
+    fn test_get_proposal_id_zero_returns_none() {
+        let env = Env::default();
+        env.mock_all_auths();
+        let (client, _) = setup(&env);
+
+        // IDs start at 1, so ID 0 should never exist
+        assert_eq!(client.get_proposal(&0), None);
+    }
 }

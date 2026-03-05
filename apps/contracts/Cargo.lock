@@ -573,6 +573,7 @@ dependencies = [
 name = "energy-distribution"
 version = "0.1.0"
 dependencies = [
+ "energy_token",
  "soroban-sdk",
  "stellar-access",
  "stellar-macros",
