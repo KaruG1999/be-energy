@@ -138,8 +138,3 @@ En nuestra experiencia, la API respondió 403 inicialmente pero comenzó a funci
 - **Pendiente**: nadie ha depositado HDROP en el vault todavía, por lo que las stats de usuario muestran error (esperado)
 - **Pendiente**: el vault no tiene strategies activas (es un hodl vault), el APY que muestra DeFindex es un valor base de referencia
 
-## Contacto PaltaLabs
-
-- Demo: https://cal.com/devmonsterblock
-- GitHub: https://github.com/paltalabs
-- SDK: https://github.com/paltalabs/defindex-sdk
