@@ -8,12 +8,26 @@ import { Sidebar } from "@/components/sidebar"
 import { DashboardHeader } from "@/components/dashboard-header"
 import { BalanceDisplay } from "@/components/balance-display"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { CheckCircle, Send, Zap, User, Copy, Check, Shield, RefreshCw } from "lucide-react"
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart, PieChart, Pie, Cell, Legend } from "recharts"
-import { mockUser, mockConsumption, mockStock, mockTransactions, mockEnergyRanking, generateIdenticon } from "@/lib/mock-data"
+import { User, Copy, Check, RefreshCw, ArrowDownLeft, ArrowUpRight, Users, Zap, TrendingUp, AlertCircle } from "lucide-react"
 import { useEnergyToken } from "@/hooks/useEnergyToken"
+import { useDefindex } from "@/hooks/useDefindex"
+import { useHorizonPayments } from "@/hooks/useHorizonPayments"
+import { useEnergyDistribution } from "@/hooks/useEnergyDistribution"
 import { Spinner } from "@/components/ui/spinner"
 import { Button } from "@/components/ui/button"
+
+function formatRelativeTime(dateString: string): string {
+  const now = new Date()
+  const date = new Date(dateString)
+  const diffMs = now.getTime() - date.getTime()
+  const diffMin = Math.floor(diffMs / 60000)
+  if (diffMin < 1) return "Ahora"
+  if (diffMin < 60) return `Hace ${diffMin}m`
+  const diffH = Math.floor(diffMin / 60)
+  if (diffH < 24) return `Hace ${diffH}h`
+  const diffD = Math.floor(diffH / 24)
+  return `Hace ${diffD}d`
+}
 
 export default function DashboardPage() {
   const { isConnected, userProfile, address } = useWallet()
@@ -21,6 +35,21 @@ export default function DashboardPage() {
   const router = useRouter()
   const { getBalance, isLoading: isBalanceLoading, error: balanceError } = useEnergyToken()
   const [hdropBalance, setHdropBalance] = useState<number | null>(null)
+
+  // Real data hooks
+  const { stats: defindexStats, vaultInfo, loading: defindexLoading, error: defindexError } = useDefindex()
+  const { payments, isLoading: paymentsLoading, error: paymentsError, refetch: refetchPayments } = useHorizonPayments(address)
+  const { getTotalGenerated, getMemberList, getMemberInfo, isLoading: communityLoading, error: communityError } = useEnergyDistribution()
+
+  // Community stats
+  const [communityStats, setCommunityStats] = useState<{
+    totalKwh: number
+    memberCount: number
+    userPercent: number | null
+  } | null>(null)
+  const [communityFetchError, setCommunityFetchError] = useState<string | null>(null)
+
+  const hasDefindexVault = !!process.env.NEXT_PUBLIC_DEFINDEX_VAULT_ADDRESS
 
   const loadBalance = useCallback(async () => {
     if (!address) return
@@ -41,48 +70,48 @@ export default function DashboardPage() {
     }
   }, [isConnected, address, loadBalance])
 
+  // Fetch community stats
+  useEffect(() => {
+    if (!isConnected || !address) return
+
+    const fetchCommunityStats = async () => {
+      try {
+        setCommunityFetchError(null)
+        const [totalKwh, members] = await Promise.all([
+          getTotalGenerated(),
+          getMemberList(),
+        ])
+        let userPercent: number | null = null
+        try {
+          const info = await getMemberInfo(address)
+          if (info.isMember) {
+            userPercent = info.percent
+          }
+        } catch {
+          // User is not a member, that's ok
+        }
+        setCommunityStats({
+          totalKwh,
+          memberCount: members.length,
+          userPercent,
+        })
+      } catch (err) {
+        console.error("Error fetching community stats:", err)
+        setCommunityFetchError(err instanceof Error ? err.message : "Error cargando datos de comunidad")
+      }
+    }
+
+    fetchCommunityStats()
+  }, [isConnected, address, getTotalGenerated, getMemberList, getMemberInfo])
+
   const [copied, setCopied] = useState(false)
   const shortAddress = address ? `${address.slice(0, 4)}...${address.slice(-4)}` : null
-  const [userStockKwh, setUserStockKwh] = useState(mockUser.stockKwh)
-  const [transactions, setTransactions] = useState(mockTransactions)
-
-  // Datos para el gráfico de torta (Generación vs Consumo)
-  const energyDistributionData = [
-    { name: "Consumido", value: mockUser.consumptionThisMonth, color: "#0300AB" },
-    { name: "Disponible", value: mockUser.generationThisMonth - mockUser.consumptionThisMonth, color: "#059669" },
-  ]
 
   useEffect(() => {
     if (!isConnected) {
       router.push("/")
     }
   }, [isConnected, router])
-
-  useEffect(() => {
-    const savedStockKwh = localStorage.getItem("userStockKwh")
-    const savedHistory = localStorage.getItem("transactionHistory")
-
-    if (savedStockKwh) {
-      setUserStockKwh(Number.parseFloat(savedStockKwh))
-    }
-    if (savedHistory) {
-      const history = JSON.parse(savedHistory)
-      setTransactions(history.slice(0, 3)) // Show only last 3
-    }
-  }, [])
-
-  const getTransactionIcon = (type: string) => {
-    switch (type) {
-      case "success":
-        return <CheckCircle className="w-5 h-5 text-success" />
-      case "send":
-        return <Send className="w-5 h-5 text-primary" />
-      case "zap":
-        return <Zap className="w-5 h-5 text-warning" />
-      default:
-        return null
-    }
-  }
 
   const handleCopyAddress = async () => {
     if (!address) return
@@ -97,6 +126,9 @@ export default function DashboardPage() {
     return null
   }
 
+  // Last 5 payments for display
+  const recentPayments = payments.slice(0, 5)
+
   return (
     <div className="min-h-screen bg-background">
       <Sidebar />
@@ -105,6 +137,7 @@ export default function DashboardPage() {
         <DashboardHeader />
 
         <div className="p-4 md:p-6">
+          {/* 1. Welcome Card */}
           {userProfile && (
             <Card
               id="user-info-section"
@@ -127,7 +160,6 @@ export default function DashboardPage() {
                     <h2 className="text-2xl md:text-3xl font-bold text-foreground">
                       {t("dashboard.welcome")} {userProfile.name}!
                     </h2>
-                    {/* Estilo de dirección + tooltip: mantener estructura (tooltip abajo, group-hover, transiciones) */}
                     <div className="flex items-center gap-2">
                       <p className="text-muted-foreground text-sm md:text-base">{shortAddress || "No conectado"}</p>
                       <div className="relative flex items-center group">
@@ -169,7 +201,7 @@ export default function DashboardPage() {
             </Card>
           )}
 
-          {/* Balance Card - Full Width */}
+          {/* 2. Balance HDROP + DeFindex Yield */}
           <Card className="glass-card border-2 border-primary/20 mb-4 md:mb-6">
             <CardHeader>
               <CardTitle className="text-xl md:text-2xl">{t("dashboard.balance")}</CardTitle>
@@ -197,11 +229,11 @@ export default function DashboardPage() {
                 </div>
               )}
               {!isBalanceLoading && !balanceError && hdropBalance !== null && (
-                <BalanceDisplay amount={hdropBalance} symbol="HDROP" fiatValue={mockUser.balanceUSD} />
+                <BalanceDisplay amount={hdropBalance} symbol="HDROP" />
               )}
 
-              {/* DeFindex Yield Section */}
-              {mockUser.defindexEnabled && (
+              {/* DeFindex Yield Section — only if vault is configured */}
+              {hasDefindexVault && (
                 <div className="mt-6 pt-6 border-t border-border">
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-2">
@@ -210,30 +242,47 @@ export default function DashboardPage() {
                       </div>
                       <div>
                         <h3 className="font-semibold text-sm">DeFindex Yield</h3>
-                        <p className="text-xs text-muted-foreground">Generando rendimiento automático</p>
+                        <p className="text-xs text-muted-foreground">
+                          {vaultInfo ? vaultInfo.name : "Generando rendimiento automático"}
+                        </p>
                       </div>
                     </div>
                     <div className="text-right">
-                      <div className="text-2xl font-bold text-success">{mockUser.defindexAPY}%</div>
-                      <div className="text-xs text-muted-foreground">APY anual</div>
+                      {defindexLoading ? (
+                        <Spinner className="size-5" />
+                      ) : defindexError ? (
+                        <div className="flex items-center gap-1 text-destructive text-xs">
+                          <AlertCircle className="size-3" />
+                          Error
+                        </div>
+                      ) : defindexStats ? (
+                        <>
+                          <div className="text-2xl font-bold text-success">{defindexStats.apy.toFixed(1)}%</div>
+                          <div className="text-xs text-muted-foreground">APY anual</div>
+                        </>
+                      ) : (
+                        <div className="text-sm text-muted-foreground">—</div>
+                      )}
                     </div>
                   </div>
 
                   {/* Stats Grid */}
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                    <div className="bg-success/5 border border-success/20 rounded-lg p-3">
-                      <p className="text-xs text-muted-foreground mb-1">Interés hoy</p>
-                      <p className="text-lg font-bold text-success">+${mockUser.defindexInterestToday.toFixed(3)}</p>
+                  {defindexStats && !defindexError && (
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                      <div className="bg-success/5 border border-success/20 rounded-lg p-3">
+                        <p className="text-xs text-muted-foreground mb-1">Interés hoy</p>
+                        <p className="text-lg font-bold text-success">+${defindexStats.interestToday.toFixed(3)}</p>
+                      </div>
+                      <div className="bg-success/5 border border-success/20 rounded-lg p-3">
+                        <p className="text-xs text-muted-foreground mb-1">Este mes</p>
+                        <p className="text-lg font-bold text-success">+${defindexStats.interestThisMonth.toFixed(2)}</p>
+                      </div>
+                      <div className="bg-primary/5 border border-primary/20 rounded-lg p-3 col-span-2 md:col-span-1">
+                        <p className="text-xs text-muted-foreground mb-1">En vault</p>
+                        <p className="text-lg font-bold text-primary">{defindexStats.balance.toLocaleString()} HDROP</p>
+                      </div>
                     </div>
-                    <div className="bg-success/5 border border-success/20 rounded-lg p-3">
-                      <p className="text-xs text-muted-foreground mb-1">Este mes</p>
-                      <p className="text-lg font-bold text-success">+${mockUser.defindexInterestThisMonth.toFixed(2)}</p>
-                    </div>
-                    <div className="bg-primary/5 border border-primary/20 rounded-lg p-3 col-span-2 md:col-span-1">
-                      <p className="text-xs text-muted-foreground mb-1">En vault</p>
-                      <p className="text-lg font-bold text-primary">${mockUser.defindexVaultBalance}</p>
-                    </div>
-                  </div>
+                  )}
 
                   {/* Info note */}
                   <div className="mt-3 flex items-start gap-2 text-xs text-muted-foreground bg-purple-500/5 border border-purple-500/20 rounded-lg p-3">
@@ -256,225 +305,152 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
 
-          {/* kWh Disponibles y Consumo - Lado a lado */}
-          <div className="grid lg:grid-cols-2 gap-4 md:gap-6 mb-4 md:mb-6">
-            {/* Stock Acumulado */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg md:text-xl">{t("dashboard.availableKwh")}</CardTitle>
-                <CardDescription>{t("dashboard.last7days")}</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl md:text-3xl font-bold text-success mb-4">{userStockKwh.toFixed(1)} kWh</div>
-                <ResponsiveContainer width="100%" height={200}>
-                  <AreaChart data={mockStock}>
-                    <defs>
-                      <linearGradient id="stockGradient" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="rgb(5, 150, 105)" stopOpacity={0.3} />
-                        <stop offset="95%" stopColor="rgb(5, 150, 105)" stopOpacity={0} />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
-                    <XAxis dataKey="day" tick={{ fontSize: 12 }} />
-                    <YAxis tick={{ fontSize: 12 }} />
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: "rgb(var(--color-card))",
-                        border: "1px solid rgb(var(--color-border))",
-                        borderRadius: "8px",
-                      }}
-                    />
-                    <Area
-                      type="monotone"
-                      dataKey="kwh"
-                      stroke="rgb(5, 150, 105)"
-                      fill="url(#stockGradient)"
-                      strokeWidth={2}
-                    />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-
-            {/* Consumo Mes */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg md:text-xl">{t("dashboard.consumption")}</CardTitle>
-                <CardDescription>{t("dashboard.last7days")}</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl md:text-3xl font-bold text-primary mb-4">
-                  {mockUser.consumptionThisMonth} kWh
-                </div>
-                <ResponsiveContainer width="100%" height={200}>
-                  <BarChart data={mockConsumption}>
-                    <defs>
-                      <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="rgb(3, 0, 171)" stopOpacity={0.9} />
-                        <stop offset="95%" stopColor="rgb(141, 232, 242)" stopOpacity={0.7} />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
-                    <XAxis dataKey="day" tick={{ fontSize: 12 }} />
-                    <YAxis tick={{ fontSize: 12 }} />
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: "rgb(var(--color-card))",
-                        border: "1px solid rgb(var(--color-border))",
-                        borderRadius: "8px",
-                      }}
-                    />
-                    <Bar dataKey="kwh" fill="url(#barGradient)" radius={[8, 8, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Ranking de Ahorro y Gráfico de Distribución */}
+          {/* 3. Community Stats + 4. Recent Transactions */}
           <div className="grid lg:grid-cols-2 gap-4 md:gap-6">
-            {/* Ranking de Ahorro */}
+            {/* Community Stats */}
             <Card className="glass-card border-2 border-success/20">
               <CardHeader>
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-xl md:text-2xl">🏆 Ranking de Ahorro</CardTitle>
-                  <Shield className="w-5 h-5 text-success" />
+                  <CardTitle className="text-lg md:text-xl flex items-center gap-2">
+                    <Users className="w-5 h-5 text-success" />
+                    Comunidad
+                  </CardTitle>
+                  <Zap className="w-5 h-5 text-success" />
                 </div>
-                <CardDescription>Los más eficientes de la comunidad</CardDescription>
+                <CardDescription>Estadísticas on-chain de la comunidad</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-3">
-                  {mockEnergyRanking.map((user, index) => (
-                    <div
-                      key={user.id}
-                      className={`flex items-center gap-3 p-3 rounded-lg transition-all hover:bg-primary/5 ${index < 3 ? "bg-gradient-to-r from-success/10 to-transparent border border-success/20" : ""
-                        }`}
-                    >
-                      {/* Posición */}
-                      <div className="flex-shrink-0 w-8 h-8 flex items-center justify-center">
-                        <span className={`font-bold ${index < 3 ? "text-success text-lg" : "text-muted-foreground"}`}>
-                          {index + 1}
-                        </span>
+                {communityLoading && !communityStats && (
+                  <div className="flex items-center gap-2 text-muted-foreground py-8 justify-center">
+                    <Spinner className="size-5" />
+                    {t("common.loading")}…
+                  </div>
+                )}
+                {communityFetchError && !communityStats && (
+                  <div className="text-center py-8">
+                    <AlertCircle className="w-8 h-8 text-destructive mx-auto mb-2" />
+                    <p className="text-sm text-destructive">{communityFetchError}</p>
+                  </div>
+                )}
+                {communityStats && (
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="text-center p-4 rounded-lg bg-success/10 border border-success/20">
+                        <Zap className="w-6 h-6 text-success mx-auto mb-2" />
+                        <p className="text-2xl font-bold text-success">{communityStats.totalKwh.toLocaleString()}</p>
+                        <p className="text-xs text-muted-foreground mt-1">kWh generados</p>
                       </div>
-
-                      {/* Avatar */}
-                      <div
-                        className="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold text-sm border-2 border-white/20"
-                        style={{ backgroundColor: generateIdenticon(user.address) }}
-                      >
-                        {user.name.charAt(0)}
-                      </div>
-
-                      {/* Info del usuario */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <p className="text-sm font-medium truncate">{user.name}</p>
-                          {user.zkVerified && (
-                            <span title="Verificado con ZK Proof"><Shield className="w-3 h-3 text-success flex-shrink-0" /></span>
-                          )}
-                        </div>
-                        {/* Hojas de ahorro */}
-                        <div className="flex gap-0.5 mt-1">
-                          {Array.from({ length: 5 }).map((_, i) => (
-                            <span
-                              key={i}
-                              className={`text-sm ${i < user.stars ? "opacity-100" : "opacity-20 grayscale"}`}
-                            >
-                              🍃
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* Porcentaje de ahorro */}
-                      <div className="flex-shrink-0 text-right">
-                        <p className="text-sm font-bold text-success">{user.savingsPercent}%</p>
-                        <p className="text-xs text-muted-foreground">ahorro</p>
+                      <div className="text-center p-4 rounded-lg bg-primary/10 border border-primary/20">
+                        <Users className="w-6 h-6 text-primary mx-auto mb-2" />
+                        <p className="text-2xl font-bold text-primary">{communityStats.memberCount}</p>
+                        <p className="text-xs text-muted-foreground mt-1">Miembros activos</p>
                       </div>
                     </div>
-                  ))}
-                </div>
 
-                {/* Nota sobre ZK Proof */}
-                <div className="mt-4 pt-4 border-t border-border">
-                  <div className="flex items-start gap-2 text-xs text-muted-foreground">
-                    <Shield className="w-4 h-4 text-success flex-shrink-0 mt-0.5" />
-                    <p>
-                      Datos verificados con <span className="font-semibold text-success">Zero-Knowledge Proof</span>{" "}
-                      para preservar tu privacidad mientras demostramos tu ahorro energético.
-                    </p>
+                    {communityStats.userPercent !== null && (
+                      <div className="bg-gradient-to-r from-success/10 to-primary/10 border border-success/20 rounded-lg p-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <TrendingUp className="w-4 h-4 text-success" />
+                            <span className="text-sm font-medium">Tu participación</span>
+                          </div>
+                          <span className="text-lg font-bold text-success">{communityStats.userPercent}%</span>
+                        </div>
+                      </div>
+                    )}
+
+                    {communityStats.userPercent === null && (
+                      <div className="text-center text-xs text-muted-foreground border border-border rounded-lg p-3">
+                        Aún no eres miembro de la comunidad energética
+                      </div>
+                    )}
                   </div>
-                </div>
+                )}
+                {!communityLoading && !communityFetchError && !communityStats && (
+                  <div className="text-center py-8 text-muted-foreground text-sm">
+                    No hay datos de comunidad disponibles
+                  </div>
+                )}
               </CardContent>
             </Card>
 
-            {/* Gráfico de Distribución de Energía */}
+            {/* Recent Transactions (Horizon) */}
             <Card className="glass-card border-2 border-primary/20">
               <CardHeader>
-                <CardTitle className="text-xl md:text-2xl">⚡ Distribución Energética</CardTitle>
-                <CardDescription>Generación vs Consumo de este mes</CardDescription>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-lg md:text-xl">Últimas transacciones</CardTitle>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={refetchPayments}
+                    disabled={paymentsLoading}
+                    className="gap-1 text-xs"
+                  >
+                    <RefreshCw className={`size-3 ${paymentsLoading ? "animate-spin" : ""}`} />
+                  </Button>
+                </div>
+                <CardDescription>Pagos reales desde Stellar Horizon</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  {/* Resumen */}
-                  <div className="grid grid-cols-2 gap-4 mb-4">
-                    <div className="text-center p-3 rounded-lg bg-success/10 border border-success/20">
-                      <p className="text-sm text-muted-foreground mb-1">Total Generado</p>
-                      <p className="text-2xl font-bold text-success">{mockUser.generationThisMonth} kWh</p>
-                    </div>
-                    <div className="text-center p-3 rounded-lg bg-primary/10 border border-primary/20">
-                      <p className="text-sm text-muted-foreground mb-1">Total Consumido</p>
-                      <p className="text-2xl font-bold text-primary">{mockUser.consumptionThisMonth} kWh</p>
-                    </div>
+                {paymentsLoading && payments.length === 0 && (
+                  <div className="flex items-center gap-2 text-muted-foreground py-8 justify-center">
+                    <Spinner className="size-5" />
+                    {t("common.loading")}…
                   </div>
-
-                  {/* Gráfico de Torta */}
-                  <ResponsiveContainer width="100%" height={280}>
-                    <PieChart>
-                      <Pie
-                        data={energyDistributionData}
-                        cx="50%"
-                        cy="50%"
-                        labelLine={false}
-                        label={({ name, percent }) => `${name} ${((percent ?? 0) * 100).toFixed(0)}%`}
-                        outerRadius={100}
-                        fill="#8884d8"
-                        dataKey="value"
-                      >
-                        {energyDistributionData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.color} />
-                        ))}
-                      </Pie>
-                      <Tooltip
-                        contentStyle={{
-                          backgroundColor: "rgb(var(--color-card))",
-                          border: "1px solid rgb(var(--color-border))",
-                          borderRadius: "8px",
-                        }}
-                        formatter={(value) => `${value} kWh`}
-                      />
-                      <Legend />
-                    </PieChart>
-                  </ResponsiveContainer>
-
-                  {/* Indicador de eficiencia */}
-                  <div className="pt-4 border-t border-border">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm text-muted-foreground">Eficiencia energética</span>
-                      <span className="text-sm font-bold text-success">
-                        {((mockUser.generationThisMonth - mockUser.consumptionThisMonth) / mockUser.generationThisMonth * 100).toFixed(0)}%
-                      </span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700">
-                      <div
-                        className="bg-gradient-to-r from-success to-green-400 h-2.5 rounded-full transition-all"
-                        style={{
-                          width: `${((mockUser.generationThisMonth - mockUser.consumptionThisMonth) / mockUser.generationThisMonth * 100)}%`,
-                        }}
-                      ></div>
-                    </div>
+                )}
+                {paymentsError && (
+                  <div className="text-center py-8">
+                    <AlertCircle className="w-8 h-8 text-destructive mx-auto mb-2" />
+                    <p className="text-sm text-destructive">{paymentsError}</p>
                   </div>
-                </div>
+                )}
+                {!paymentsLoading && !paymentsError && recentPayments.length === 0 && (
+                  <div className="text-center py-8 text-muted-foreground text-sm">
+                    No hay transacciones aún
+                  </div>
+                )}
+                {recentPayments.length > 0 && (
+                  <div className="space-y-3">
+                    {recentPayments.map((payment) => {
+                      const isIncoming = payment.to === address
+                      const amount = payment.amount || payment.source_amount || "?"
+                      const asset = payment.asset_code || (payment.asset_type === "native" ? "XLM" : "?")
+
+                      return (
+                        <div
+                          key={payment.id}
+                          className="flex items-center gap-3 p-3 rounded-lg hover:bg-primary/5 transition-colors"
+                        >
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                            isIncoming
+                              ? "bg-success/10 text-success"
+                              : "bg-primary/10 text-primary"
+                          }`}>
+                            {isIncoming ? (
+                              <ArrowDownLeft className="w-4 h-4" />
+                            ) : (
+                              <ArrowUpRight className="w-4 h-4" />
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium">
+                              {isIncoming ? "Recibido" : "Enviado"}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {formatRelativeTime(payment.created_at)}
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <p className={`text-sm font-bold ${isIncoming ? "text-success" : "text-foreground"}`}>
+                              {isIncoming ? "+" : "-"}{Number(amount).toLocaleString("es-ES", { maximumFractionDigits: 2 })}
+                            </p>
+                            <p className="text-xs text-muted-foreground">{asset}</p>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>

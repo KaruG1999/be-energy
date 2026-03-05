@@ -1,74 +1,8 @@
 // Mock data para demo de BeEnergy
 
 export const mockUser = {
-  address: "G4K2VXNJ5WQRTHGFDSAPLMNBVCXZAQWERTYUIOP9X9B1",
-  shortAddress: "G4K2...X9B1",
-  balance: 1234,
-  balanceUSD: 520,
   stockKwh: 87.5,
-  consumptionThisMonth: 142.3,
-  generationThisMonth: 210.5,
-  defindexEnabled: true,
-  defindexAPY: 8.5,
-  defindexInterestToday: 0.285,
-  defindexInterestThisMonth: 8.75,
-  defindexVaultBalance: 1234,
 }
-
-export const mockEnergyRanking = [
-  { id: 1, name: "María G.", address: "G7Y3KML4RTH8PLQW5XN9ZV2F6J1K4L2", savingsPercent: 42, stars: 5, zkVerified: true },
-  { id: 2, name: "Carlos R.", address: "F2M8PQW3NRT6YKL9XHV1ZJ4C5B7A8D9", savingsPercent: 38, stars: 4, zkVerified: true },
-  { id: 3, name: "Ana L.", address: "H4K9LXC2VBN7TQW6PMZ3RF1J8Y5M4N3", savingsPercent: 35, stars: 4, zkVerified: true },
-  { id: 4, name: "Pedro M.", address: "P6R1WQX4JKL9NVB2THY8MZC5F3G7D2K", savingsPercent: 31, stars: 3, zkVerified: false },
-  { id: 5, name: "Laura S.", address: "M3N7YFG9QWX2PKL6RHV4JZC1TB8D5N9", savingsPercent: 28, stars: 3, zkVerified: true },
-]
-
-export const mockConsumption = [
-  { day: "Lun", kwh: 18 },
-  { day: "Mar", kwh: 22 },
-  { day: "Mié", kwh: 20 },
-  { day: "Jue", kwh: 25 },
-  { day: "Vie", kwh: 19 },
-  { day: "Sáb", kwh: 15 },
-  { day: "Dom", kwh: 23 },
-]
-
-export const mockStock = [
-  { day: "Lun", kwh: 82 },
-  { day: "Mar", kwh: 84 },
-  { day: "Mié", kwh: 86 },
-  { day: "Jue", kwh: 85 },
-  { day: "Vie", kwh: 87 },
-  { day: "Sáb", kwh: 88 },
-  { day: "Dom", kwh: 87.5 },
-]
-
-export const mockTransactions = [
-  {
-    id: 1,
-    type: "compra",
-    description: "Compra de energía",
-    amount: "+25 kWh",
-    time: "Hace 2h",
-    icon: "success",
-  },
-  {
-    id: 2,
-    type: "venta",
-    description: "Venta al mercado",
-    amount: "-10 kWh",
-    time: "Hace 5h",
-    icon: "send",
-  },
-  {
-    id: 3,
-    type: "consumo",
-    description: "Consumo doméstico",
-    amount: "-8 kWh",
-    time: "Hace 1d",
-    icon: "zap",
-  },
-]
 
 export const mockOffers = [
   {
