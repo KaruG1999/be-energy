@@ -44,6 +44,45 @@ Estos contratos se redesplegarán con los cambios de v0.3.0 (nombre parametrizab
 
 ---
 
+## Integration Test — Circuito completo en Stellar Testnet
+
+Test end-to-end que ejecuta el circuito real del producto contra Stellar Testnet.
+
+```bash
+npx tsx scripts/integration-test.ts
+```
+
+### Qué hace
+
+| Test | Paso | Verificación |
+|------|------|-------------|
+| 1 | Crear 3 wallets Stellar + fondear con Friendbot | Balance 10,000 XLM |
+| 2 | Crear cooperativa + agregar prosumer en Supabase | IDs válidos |
+| 3 | Crear medidor + enviar 3 lecturas (38.5 kWh) | Insert OK |
+| 4 | Crear certificado + **mint on-chain** (Soroban) | Tx confirmada, status → `available` |
+| 5 | Retirar certificado + **burn on-chain** (Soroban) | Tx confirmada, status → `retired` |
+
+### Última ejecución exitosa (2026-03-07)
+
+5/5 tests passed en ~32s.
+
+| Operación | Tx Hash | Explorer |
+|-----------|---------|----------|
+| **Mint** (38.5 kWh) | `6ec071c2...` | [Stellar Expert](https://stellar.expert/explorer/testnet/tx/6ec071c257f628ba8c544539c8401b47c1cd10bd54a8b4b8bb168fe4c5522070) |
+| **Burn** (38.5 kWh) | `afd646aa...` | [Stellar Expert](https://stellar.expert/explorer/testnet/tx/afd646aab80f055d5fec4176772ae67825b63865e42c8aca5d290c5a04ae9218) |
+
+Contrato utilizado: `CCYOVOFDJ5BVBSI6HADLWETTUF3BU423MEAWBSBWV2X5UVNKSJMRPBA6` ([Explorer](https://stellar.expert/explorer/testnet/contract/CCYOVOFDJ5BVBSI6HADLWETTUF3BU423MEAWBSBWV2X5UVNKSJMRPBA6))
+
+### Modelo custodial
+
+Los tokens se mintean a la address del minter (plataforma) y se queman desde la misma address al retirar. El buyer se registra en la tabla `retirements` de Supabase pero no necesita tener tokens on-chain. Esto permite que el server-side maneje todo el ciclo con una sola clave privada (MINTER_SECRET_KEY).
+
+### Cleanup
+
+El test limpia automáticamente los datos de Supabase al finalizar (retirements, mint_log, certificates, readings, meters, prosumers, cooperatives).
+
+---
+
 ## Smart Meter Mock
 
 Simulador de medidores inteligentes para generar datos realistas.
