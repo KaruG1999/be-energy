@@ -4,6 +4,62 @@
 
 ---
 
+## System Architecture
+
+```
+┌──────────────┐
+│  Medidor     │  Hardware del usuario-generador
+│  bidireccional│  Registra kWh inyectados a la red
+└──────┬───────┘
+       │ dato de lectura (kWh, fecha, medidor_id)
+       │
+       │ Fase 1: carga manual / CSV
+       │ Fase 2: API automática del medidor
+       ▼
+┌──────────────┐
+│  Cooperativa │  Admin humano con acceso al dashboard
+│  (admin)     │  Valida que la lectura sea correcta
+└──────┬───────┘
+       │ POST /api/readings  →  POST /api/validate
+       ▼
+┌──────────────────────────────────────────────────┐
+│  Backend BeEnergy (Next.js API Routes)           │
+│                                                  │
+│  /api/readings      → Supabase (INSERT lectura)  │
+│  /api/validate      → Supabase (UPDATE estado)   │
+│                       + Soroban (mint_energy)     │
+│  /api/apply-credit  → Soroban (burn_energy)      │
+│                       + Supabase (UPDATE factura) │
+│  /api/balance       → Soroban (balance query)    │
+│                                                  │
+│  Supabase: lecturas, usuarios, logs              │
+│  Soroban RPC: transacciones on-chain             │
+└──────────────────┬───────────────────────────────┘
+                   │ simulateTransaction → sendTransaction
+                   ▼
+┌──────────────────────────────────────────────────┐
+│  Stellar Network (Soroban)                       │
+│                                                  │
+│  energy_token         mint / burn / balance      │
+│  energy_distribution  registro + distribución    │
+│                                                  │
+│  Inmutable. Auditable. ~0.00001 XLM por tx.      │
+└──────────────────┬───────────────────────────────┘
+                   │ balance, historial
+                   ▼
+┌──────────────────────────────────────────────────┐
+│  Dashboard (Next.js + React)                     │
+│                                                  │
+│  Vista cooperativa: lecturas, validación, totales│
+│  Vista usuario: generación, créditos, historial  │
+│                                                  │
+│  Wallet: Freighter (SEP-43) para firmar txs      │
+│  El usuario no necesita saber qué es blockchain  │
+└──────────────────────────────────────────────────┘
+```
+
+---
+
 ## Stack
 
 | Capa | Tecnología |
