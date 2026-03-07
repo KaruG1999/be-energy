@@ -62,9 +62,8 @@ export async function POST(req: NextRequest) {
       .addOperation(
         contract.call(
           "burn_energy",
-          StellarSdk.nativeToScVal(buyer_address, { type: "address" }),
-          StellarSdk.nativeToScVal(amountInStroops, { type: "i128" }),
-          StellarSdk.nativeToScVal(minterPublic, { type: "address" })
+          StellarSdk.nativeToScVal(minterPublic, { type: "address" }),
+          StellarSdk.nativeToScVal(amountInStroops, { type: "i128" })
         )
       )
       .setTimeout(30)

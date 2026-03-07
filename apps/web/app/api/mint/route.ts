@@ -118,7 +118,8 @@ export async function POST(req: NextRequest) {
         admin_stellar_address: string
         token_contract_address: string | null
       }
-      const mintTo = coop.admin_stellar_address
+      // Custodial model: tokens go to minter (platform holds them)
+      const mintTo = StellarSdk.Keypair.fromSecret(minterSecret).publicKey()
       const tokenContract = coop.token_contract_address || contractAddress
 
       const txHash = await mintOnChain(mintTo, cert.total_kwh, minterSecret, tokenContract)
