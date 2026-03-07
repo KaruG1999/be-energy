@@ -1,65 +1,68 @@
 import { NextRequest, NextResponse } from "next/server"
 import { supabase } from "@/lib/supabase"
+import { requireAuth, requireAdmin, isSession } from "@/lib/auth/middleware"
+import { validateBody } from "@/lib/validation/validate"
+import { createMemberSchema } from "@/lib/validation/schemas"
+import { safeDbError, safeCatchError } from "@/lib/errors/safe-error"
 
-// Legacy endpoint — proxies to the prosumers table (now with cooperative support)
-// Prefer /api/members for new integrations
+// GET: authenticated, scoped to caller's cooperatives
+export async function GET(req: NextRequest) {
+  const session = await requireAuth()
+  if (!isSession(session)) return session
 
-export async function POST(req: NextRequest) {
-  try {
-    const body = await req.json()
-    const { stellar_address, name, panel_capacity_kw, cooperative_id, role } = body
+  const { searchParams } = new URL(req.url)
+  const cooperativeId = searchParams.get("cooperative_id")
 
-    if (!stellar_address) {
-      return NextResponse.json(
-        { error: "Missing required field: stellar_address" },
-        { status: 400 }
-      )
-    }
-
-    const { data: existing } = await supabase
-      .from("prosumers")
-      .select("id")
-      .eq("stellar_address", stellar_address)
-      .single()
-
-    if (existing) {
-      return NextResponse.json(
-        { error: "A prosumer with this stellar_address already exists" },
-        { status: 409 }
-      )
-    }
-
-    const { data: prosumer, error } = await supabase
-      .from("prosumers")
-      .insert({
-        stellar_address,
-        name: name ?? null,
-        panel_capacity_kw: panel_capacity_kw ?? null,
-        cooperative_id: cooperative_id ?? null,
-        role: role ?? "prosumer",
-      })
-      .select()
-      .single()
-
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 })
-    }
-
-    return NextResponse.json(prosumer, { status: 201 })
-  } catch {
-    return NextResponse.json({ error: "Invalid request" }, { status: 400 })
-  }
-}
-
-export async function GET() {
-  const { data, error } = await supabase
+  let query = supabase
     .from("prosumers")
     .select("*")
     .order("created_at", { ascending: false })
 
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+  if (cooperativeId) {
+    if (!session.cooperative_ids.includes(cooperativeId)) {
+      return NextResponse.json({ error: "Access denied" }, { status: 403 })
+    }
+    query = query.eq("cooperative_id", cooperativeId)
+  } else {
+    if (session.cooperative_ids.length > 0) {
+      query = query.in("cooperative_id", session.cooperative_ids)
+    } else {
+      return NextResponse.json([])
+    }
   }
 
+  const { data, error } = await query
+  if (error) return safeDbError(error)
+
   return NextResponse.json(data)
+}
+
+// POST: admin — adds member to cooperative
+export async function POST(req: NextRequest) {
+  try {
+    const body = await req.json()
+    const v = validateBody(createMemberSchema, body)
+    if (!v.success) return v.response
+
+    const session = await requireAdmin(v.data.cooperative_id)
+    if (!isSession(session)) return session
+
+    const { data, error } = await supabase
+      .from("prosumers")
+      .insert({
+        stellar_address: v.data.stellar_address,
+        cooperative_id: v.data.cooperative_id,
+        name: v.data.name ?? null,
+        panel_capacity_kw: v.data.panel_capacity_kw ?? null,
+        role: v.data.role,
+      })
+      .select()
+      .single()
+
+    if (error) return safeDbError(error)
+
+    return NextResponse.json(data, { status: 201 })
+  } catch (err) {
+    return safeCatchError(err)
+  }
 }

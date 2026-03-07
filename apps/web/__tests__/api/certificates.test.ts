@@ -1,6 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
 import { NextRequest } from "next/server"
 
+const ADDR = "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+const COOP_ID = "00000000-0000-0000-0000-000000000001"
+
 const { mockSingle, mockOrder, mockFrom } = vi.hoisted(() => {
   const mockSingle = vi.fn()
   const mockOrder = vi.fn(() => ({ data: [], error: null }))
@@ -21,6 +24,20 @@ const { mockSingle, mockOrder, mockFrom } = vi.hoisted(() => {
 
 vi.mock("@/lib/supabase", () => ({
   supabase: { from: mockFrom },
+}))
+
+vi.mock("@/lib/auth/middleware", () => ({
+  requireAuth: vi.fn(async () => ({
+    sub: ADDR,
+    cooperative_ids: [COOP_ID],
+    admin_cooperative_ids: [COOP_ID],
+  })),
+  requireAdmin: vi.fn(async () => ({
+    sub: ADDR,
+    cooperative_ids: [COOP_ID],
+    admin_cooperative_ids: [COOP_ID],
+  })),
+  isSession: vi.fn(() => true),
 }))
 
 import { GET, POST } from "@/app/api/certificates/route"
@@ -54,16 +71,16 @@ describe("POST /api/certificates", () => {
   beforeEach(() => vi.clearAllMocks())
 
   it("rechaza sin campos requeridos → 400", async () => {
-    const res = await POST(makePost({ cooperative_id: "coop-1" }))
+    const res = await POST(makePost({ cooperative_id: COOP_ID }))
     expect(res.status).toBe(400)
     const json = await res.json()
-    expect(json.error).toMatch(/Missing required/)
+    expect(json.error).toMatch(/Validation failed/)
   })
 
   it("crea certificado válido → 201", async () => {
     const fakeCert = {
       id: "cert-1",
-      cooperative_id: "coop-1",
+      cooperative_id: COOP_ID,
       total_kwh: 150,
       technology: "solar",
       status: "pending",
@@ -72,7 +89,7 @@ describe("POST /api/certificates", () => {
 
     const res = await POST(
       makePost({
-        cooperative_id: "coop-1",
+        cooperative_id: COOP_ID,
         generation_period_start: "2025-01-01",
         generation_period_end: "2025-01-31",
         total_kwh: 150,

@@ -125,6 +125,35 @@ END $$;
 
 -- 5. Drop legacy P2P table
 DROP TABLE IF EXISTS offers;
+
+-- 6. Auth challenges (wallet signature auth)
+CREATE TABLE IF NOT EXISTS auth_challenges (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  stellar_address TEXT NOT NULL,
+  challenge TEXT NOT NULL UNIQUE,
+  expires_at TIMESTAMPTZ NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- 7. Rate limiting (serverless-compatible)
+CREATE TABLE IF NOT EXISTS rate_limits (
+  key TEXT NOT NULL,
+  window_start TIMESTAMPTZ NOT NULL,
+  count INTEGER DEFAULT 1,
+  PRIMARY KEY (key, window_start)
+);
+
+-- 8. Audit log
+CREATE TABLE IF NOT EXISTS audit_log (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  action TEXT NOT NULL,
+  actor TEXT NOT NULL,
+  resource_type TEXT,
+  resource_id TEXT,
+  details JSONB DEFAULT '{}',
+  ip_address TEXT,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
 `
 
 async function main() {

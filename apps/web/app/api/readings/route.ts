@@ -1,53 +1,30 @@
 import { NextRequest, NextResponse } from "next/server"
 import { supabase } from "@/lib/supabase"
+import { requireAuth, isSession } from "@/lib/auth/middleware"
+import { validateBody } from "@/lib/validation/validate"
+import { createReadingSchema } from "@/lib/validation/schemas"
+import { safeDbError, safeCatchError } from "@/lib/errors/safe-error"
 
+// POST: authenticated — member or admin of the cooperative
 export async function POST(req: NextRequest) {
   try {
+    const session = await requireAuth()
+    if (!isSession(session)) return session
+
     const body = await req.json()
-    const {
-      stellar_address,
-      meter_id,
-      // Support both old and new field names
-      kwh_injected,
-      kwh_generated,
-      kwh_consumed,
-      kwh_self_consumed,
-      reading_date,
-      reading_timestamp,
-      power_watts,
-      interval_minutes,
-      cooperative_id,
-    } = body
+    const v = validateBody(createReadingSchema, body)
+    if (!v.success) return v.response
+
+    const { stellar_address, meter_id, kwh_generated, kwh_injected, kwh_self_consumed, kwh_consumed,
+            reading_date, reading_timestamp, power_watts, interval_minutes, cooperative_id } = v.data
 
     const kwhGen = kwh_generated ?? kwh_injected
     const kwhSelf = kwh_self_consumed ?? kwh_consumed
-
-    if (!stellar_address && !meter_id) {
-      return NextResponse.json(
-        { error: "Missing required field: stellar_address or meter_id" },
-        { status: 400 }
-      )
-    }
-
-    if (kwhGen == null || (!reading_date && !reading_timestamp)) {
-      return NextResponse.json(
-        { error: "Missing required fields: kwh_generated (or kwh_injected), reading_date (or reading_timestamp)" },
-        { status: 400 }
-      )
-    }
-
-    if (kwhGen <= 0 || kwhGen >= 1000) {
-      return NextResponse.json(
-        { error: "kwh_generated must be > 0 and < 1000" },
-        { status: 400 }
-      )
-    }
 
     let prosumerId: string | null = null
     let coopId: string | null = cooperative_id ?? null
 
     if (stellar_address) {
-      // Legacy path: lookup prosumer
       const { data: prosumer, error: prosumerError } = await supabase
         .from("prosumers")
         .select("id, cooperative_id")
@@ -66,7 +43,6 @@ export async function POST(req: NextRequest) {
     }
 
     if (meter_id) {
-      // New path: lookup meter for cooperative_id
       const { data: meter } = await supabase
         .from("meters")
         .select("cooperative_id")
@@ -76,7 +52,12 @@ export async function POST(req: NextRequest) {
       if (meter && !coopId) coopId = meter.cooperative_id
     }
 
-    // Check for duplicate reading on the same date (legacy compat)
+    // Authorization: must be member of the cooperative
+    if (coopId && !session.cooperative_ids.includes(coopId)) {
+      return NextResponse.json({ error: "Access denied" }, { status: 403 })
+    }
+
+    // Check for duplicate reading on the same date
     if (prosumerId && reading_date) {
       const { data: existing } = await supabase
         .from("readings")
@@ -111,12 +92,10 @@ export async function POST(req: NextRequest) {
       .select()
       .single()
 
-    if (insertError) {
-      return NextResponse.json({ error: insertError.message }, { status: 500 })
-    }
+    if (insertError) return safeDbError(insertError)
 
     return NextResponse.json(reading, { status: 201 })
-  } catch {
-    return NextResponse.json({ error: "Invalid request" }, { status: 400 })
+  } catch (err) {
+    return safeCatchError(err)
   }
 }

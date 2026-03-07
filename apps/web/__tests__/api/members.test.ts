@@ -1,9 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
 import { NextRequest } from "next/server"
 
-const { mockSingle, mockOrder, mockFrom } = vi.hoisted(() => {
+const ADDR = "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+const COOP_ID = "00000000-0000-0000-0000-000000000001"
+
+const { mockSingle, mockOrder, mockIn, mockFrom } = vi.hoisted(() => {
   const mockSingle = vi.fn()
-  const mockOrder = vi.fn(() => ({ data: [], error: null }))
+  const mockIn = vi.fn(() => ({ data: [], error: null }))
+  const mockOrder = vi.fn(() => ({ data: [], error: null, in: mockIn }))
   const mockEq: ReturnType<typeof vi.fn> = vi.fn(() => ({ order: mockOrder, eq: mockEq, single: mockSingle }))
   const mockSelect = vi.fn(() => ({ single: mockSingle }))
   const mockInsert = vi.fn(() => ({ select: mockSelect }))
@@ -11,11 +15,25 @@ const { mockSingle, mockOrder, mockFrom } = vi.hoisted(() => {
     select: vi.fn(() => ({ order: mockOrder, eq: mockEq })),
     insert: mockInsert,
   }))
-  return { mockSingle, mockOrder, mockFrom }
+  return { mockSingle, mockOrder, mockIn, mockFrom }
 })
 
 vi.mock("@/lib/supabase", () => ({
   supabase: { from: mockFrom },
+}))
+
+vi.mock("@/lib/auth/middleware", () => ({
+  requireAuth: vi.fn(async () => ({
+    sub: ADDR,
+    cooperative_ids: [COOP_ID],
+    admin_cooperative_ids: [COOP_ID],
+  })),
+  requireAdmin: vi.fn(async () => ({
+    sub: ADDR,
+    cooperative_ids: [COOP_ID],
+    admin_cooperative_ids: [COOP_ID],
+  })),
+  isSession: vi.fn(() => true),
 }))
 
 import { GET, POST } from "@/app/api/members/route"
@@ -34,9 +52,9 @@ function makePost(body: Record<string, unknown>) {
 describe("GET /api/members", () => {
   beforeEach(() => vi.clearAllMocks())
 
-  it("lista miembros", async () => {
-    const fakeMembers = [{ id: "1", stellar_address: "GA1" }]
-    mockOrder.mockReturnValueOnce({ data: fakeMembers, error: null })
+  it("lista miembros scoped a cooperativa", async () => {
+    const fakeMembers = [{ id: "1", stellar_address: ADDR }]
+    mockIn.mockReturnValueOnce({ data: fakeMembers, error: null })
 
     const res = await GET(makeGet())
     expect(res.status).toBe(200)
@@ -52,33 +70,18 @@ describe("POST /api/members", () => {
     const res = await POST(makePost({ name: "Test" }))
     expect(res.status).toBe(400)
     const json = await res.json()
-    expect(json.error).toMatch(/stellar_address, cooperative_id/)
-  })
-
-  it("rechaza address duplicada → 409", async () => {
-    // First .single() call is for the duplicate check: .select("id").eq(...).single()
-    mockSingle.mockResolvedValueOnce({ data: { id: "existing" }, error: null })
-
-    const res = await POST(
-      makePost({ stellar_address: "GABC", cooperative_id: "coop-1" })
-    )
-    expect(res.status).toBe(409)
-    const json = await res.json()
-    expect(json.error).toMatch(/already exists/)
+    expect(json.error).toMatch(/Validation failed/)
   })
 
   it("crea miembro válido → 201", async () => {
-    const fakeMember = { id: "uuid-1", stellar_address: "GABC", cooperative_id: "coop-1" }
-    // First .single() → duplicate check returns nothing
-    mockSingle.mockResolvedValueOnce({ data: null, error: { message: "not found" } })
-    // Second .single() → insert result
+    const fakeMember = { id: "uuid-1", stellar_address: ADDR, cooperative_id: COOP_ID }
     mockSingle.mockResolvedValueOnce({ data: fakeMember, error: null })
 
     const res = await POST(
-      makePost({ stellar_address: "GABC", cooperative_id: "coop-1" })
+      makePost({ stellar_address: ADDR })
     )
     expect(res.status).toBe(201)
     const json = await res.json()
-    expect(json.stellar_address).toBe("GABC")
+    expect(json.stellar_address).toBe(ADDR)
   })
 })

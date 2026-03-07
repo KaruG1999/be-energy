@@ -1,23 +1,21 @@
 import { NextRequest, NextResponse } from "next/server"
 import { supabase } from "@/lib/supabase"
+import { safeDbError } from "@/lib/errors/safe-error"
 
 // CO2 avoided factor for Argentina (kg CO2 per kWh)
 const CO2_FACTOR_AR = 0.4
 
+// GET: public (transparency)
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
   const buyerAddress = searchParams.get("buyer_address")
 
-  // All certificates
   const { data: allCerts, error: certsError } = await supabase
     .from("certificates")
     .select("id, total_kwh, technology, cooperative_id, status, cooperatives(name)")
 
-  if (certsError) {
-    return NextResponse.json({ error: certsError.message }, { status: 500 })
-  }
+  if (certsError) return safeDbError(certsError)
 
-  // All retirements (optionally filtered by buyer)
   let retirementsQuery = supabase
     .from("retirements")
     .select("certificate_id, kwh_retired, buyer_address, buyer_purpose")
@@ -28,9 +26,7 @@ export async function GET(req: NextRequest) {
 
   const { data: retirements, error: retError } = await retirementsQuery
 
-  if (retError) {
-    return NextResponse.json({ error: retError.message }, { status: 500 })
-  }
+  if (retError) return safeDbError(retError)
 
   const retiredCertIds = new Set((retirements ?? []).map((r) => r.certificate_id))
 
@@ -42,7 +38,6 @@ export async function GET(req: NextRequest) {
     (c) => c.status === "retired" || retiredCertIds.has(c.id)
   ).length
 
-  // Group by technology
   const byTechnology: Record<string, { certified_kwh: number; retired_kwh: number }> = {}
   for (const cert of allCerts ?? []) {
     if (!byTechnology[cert.technology]) {
@@ -57,7 +52,6 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  // Group by cooperative
   const byCooperative: Record<string, { name: string; certified_kwh: number; retired_kwh: number }> = {}
   for (const cert of allCerts ?? []) {
     const coopId = cert.cooperative_id

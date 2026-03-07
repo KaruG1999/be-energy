@@ -1,6 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
 import { NextRequest } from "next/server"
 
+const ADDR = "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+const BUYER = "GBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB"
+const COOP_ID = "00000000-0000-0000-0000-000000000001"
+const CERT_ID = "00000000-0000-0000-0000-000000000002"
+
 const { mockSingle, mockFrom } = vi.hoisted(() => {
   const mockSingle = vi.fn()
   const mockEq: ReturnType<typeof vi.fn> = vi.fn(() => ({ single: mockSingle, eq: mockEq }))
@@ -17,6 +22,15 @@ const { mockSingle, mockFrom } = vi.hoisted(() => {
 
 vi.mock("@/lib/supabase", () => ({
   supabase: { from: mockFrom },
+}))
+
+vi.mock("@/lib/auth/middleware", () => ({
+  requireAuth: vi.fn(async () => ({
+    sub: ADDR,
+    cooperative_ids: [COOP_ID],
+    admin_cooperative_ids: [COOP_ID],
+  })),
+  isSession: vi.fn(() => true),
 }))
 
 vi.mock("@stellar/stellar-sdk", () => ({
@@ -51,23 +65,21 @@ describe("POST /api/certificates/retire", () => {
   })
 
   it("rechaza sin campos requeridos → 400", async () => {
-    const res = await POST(makeRequest({ certificate_id: "c1" }))
+    const res = await POST(makeRequest({ certificate_id: CERT_ID }))
     expect(res.status).toBe(400)
     const json = await res.json()
-    expect(json.error).toMatch(/Missing required/)
+    expect(json.error).toMatch(/Validation failed/)
   })
 
   it("rechaza buyer_purpose inválido → 400", async () => {
     const res = await POST(
       makeRequest({
-        certificate_id: "c1",
-        buyer_address: "GBUYER",
+        certificate_id: CERT_ID,
+        buyer_address: BUYER,
         buyer_purpose: "fun",
       })
     )
     expect(res.status).toBe(400)
-    const json = await res.json()
-    expect(json.error).toMatch(/buyer_purpose/)
   })
 
   it("rechaza certificado inexistente → 404", async () => {
@@ -75,8 +87,8 @@ describe("POST /api/certificates/retire", () => {
 
     const res = await POST(
       makeRequest({
-        certificate_id: "nonexistent",
-        buyer_address: "GBUYER",
+        certificate_id: CERT_ID,
+        buyer_address: BUYER,
         buyer_purpose: "esg_reporting",
       })
     )
@@ -85,14 +97,14 @@ describe("POST /api/certificates/retire", () => {
 
   it("rechaza certificado con status != available → 400", async () => {
     mockSingle.mockResolvedValueOnce({
-      data: { id: "c1", status: "pending", total_kwh: 100 },
+      data: { id: CERT_ID, status: "pending", total_kwh: 100 },
       error: null,
     })
 
     const res = await POST(
       makeRequest({
-        certificate_id: "c1",
-        buyer_address: "GBUYER",
+        certificate_id: CERT_ID,
+        buyer_address: BUYER,
         buyer_purpose: "esg_reporting",
       })
     )
@@ -105,19 +117,17 @@ describe("POST /api/certificates/retire", () => {
     delete process.env.MINTER_SECRET_KEY
 
     mockSingle.mockResolvedValueOnce({
-      data: { id: "c1", status: "available", total_kwh: 100 },
+      data: { id: CERT_ID, status: "available", total_kwh: 100 },
       error: null,
     })
 
     const res = await POST(
       makeRequest({
-        certificate_id: "c1",
-        buyer_address: "GBUYER",
+        certificate_id: CERT_ID,
+        buyer_address: BUYER,
         buyer_purpose: "esg_reporting",
       })
     )
     expect(res.status).toBe(500)
-    const json = await res.json()
-    expect(json.error).toMatch(/MINTER_SECRET_KEY/)
   })
 })

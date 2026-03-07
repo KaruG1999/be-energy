@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from "next/server"
 import * as StellarSdk from "@stellar/stellar-sdk"
 import { supabase } from "@/lib/supabase"
 import { CONTRACTS, STELLAR_CONFIG, NETWORK_PASSPHRASE } from "@/lib/contracts-config"
+import { requireAuth, isSession } from "@/lib/auth/middleware"
+import { validateBody } from "@/lib/validation/validate"
+import { mintSchema } from "@/lib/validation/schemas"
+import { safeCatchError } from "@/lib/errors/safe-error"
 
 async function markFailed(readingId: string, reason: string) {
   await supabase
@@ -61,29 +65,29 @@ async function mintOnChain(
   return sendResult.hash
 }
 
+// POST: admin — mints tokens for certificate (or legacy reading)
 export async function POST(req: NextRequest) {
   let readingId: string | undefined
 
   try {
-    const body = await req.json()
-    readingId = body.reading_id
-    const certificateId: string | undefined = body.certificate_id
+    const session = await requireAuth()
+    if (!isSession(session)) return session
 
-    if (!readingId && !certificateId) {
-      return NextResponse.json(
-        { error: "Missing reading_id or certificate_id" },
-        { status: 400 }
-      )
-    }
+    const body = await req.json()
+    const v = validateBody(mintSchema, body)
+    if (!v.success) return v.response
+
+    readingId = v.data.reading_id
+    const certificateId = v.data.certificate_id
 
     const minterSecret = process.env.MINTER_SECRET_KEY
     if (!minterSecret) {
-      return NextResponse.json({ error: "MINTER_SECRET_KEY not configured" }, { status: 500 })
+      return NextResponse.json({ error: "Server configuration error" }, { status: 500 })
     }
 
     const contractAddress = CONTRACTS.ENERGY_TOKEN
     if (!contractAddress) {
-      return NextResponse.json({ error: "ENERGY_TOKEN contract not configured" }, { status: 500 })
+      return NextResponse.json({ error: "Server configuration error" }, { status: 500 })
     }
 
     // --- Certificate flow ---
@@ -96,6 +100,11 @@ export async function POST(req: NextRequest) {
 
       if (certError || !cert) {
         return NextResponse.json({ error: "Certificate not found" }, { status: 404 })
+      }
+
+      // Must be admin of the certificate's cooperative
+      if (!session.admin_cooperative_ids.includes(cert.cooperative_id)) {
+        return NextResponse.json({ error: "Admin access required" }, { status: 403 })
       }
 
       if (cert.status !== "pending") {
@@ -114,7 +123,6 @@ export async function POST(req: NextRequest) {
 
       const txHash = await mintOnChain(mintTo, cert.total_kwh, minterSecret, tokenContract)
 
-      // Update certificate
       await supabase
         .from("certificates")
         .update({
@@ -124,7 +132,6 @@ export async function POST(req: NextRequest) {
         })
         .eq("id", certificateId)
 
-      // Log
       await supabase.from("mint_log").insert({
         certificate_id: certificateId,
         prosumer_address: mintTo,
@@ -160,7 +167,6 @@ export async function POST(req: NextRequest) {
     }
 
     const prosumerAddress = reading.prosumers.stellar_address
-    // Support both old and new column names
     const kwhAmount = reading.kwh_generated ?? reading.kwh_injected
 
     const txHash = await mintOnChain(prosumerAddress, kwhAmount, minterSecret, contractAddress)
@@ -188,6 +194,6 @@ export async function POST(req: NextRequest) {
     if (readingId) {
       return markFailed(readingId, message)
     }
-    return NextResponse.json({ error: message }, { status: 500 })
+    return safeCatchError(error)
   }
 }

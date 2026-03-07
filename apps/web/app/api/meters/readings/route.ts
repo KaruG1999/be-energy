@@ -1,17 +1,21 @@
 import { NextRequest, NextResponse } from "next/server"
 import { supabase } from "@/lib/supabase"
+import { requireAuth, isSession } from "@/lib/auth/middleware"
+import { validateBody } from "@/lib/validation/validate"
+import { bulkMeterReadingsSchema } from "@/lib/validation/schemas"
+import { safeDbError, safeCatchError } from "@/lib/errors/safe-error"
 
+// POST: authenticated — admin or owner of the meter
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json()
-    const { meter_id, readings } = body
+    const session = await requireAuth()
+    if (!isSession(session)) return session
 
-    if (!meter_id || !Array.isArray(readings) || readings.length === 0) {
-      return NextResponse.json(
-        { error: "Missing required fields: meter_id, readings (non-empty array)" },
-        { status: 400 }
-      )
-    }
+    const body = await req.json()
+    const v = validateBody(bulkMeterReadingsSchema, body)
+    if (!v.success) return v.response
+
+    const { meter_id, readings } = v.data
 
     // Validate meter exists and is active
     const { data: meter, error: meterError } = await supabase
@@ -31,43 +35,36 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // Build rows for batch insert
-    const rows = readings.map(
-      (r: {
-        kwh_generated: number
-        reading_timestamp?: string
-        reading_date?: string
-        power_watts?: number
-        interval_minutes?: number
-        kwh_self_consumed?: number
-      }) => ({
-        meter_id,
-        cooperative_id: meter.cooperative_id,
-        kwh_generated: r.kwh_generated,
-        kwh_self_consumed: r.kwh_self_consumed ?? null,
-        power_watts: r.power_watts ?? null,
-        interval_minutes: r.interval_minutes ?? 15,
-        reading_timestamp: r.reading_timestamp ?? null,
-        reading_date: r.reading_date ?? null,
-        source: "meter",
-        status: "pending",
-      })
-    )
+    // Authorization: must be member of the meter's cooperative
+    if (!session.cooperative_ids.includes(meter.cooperative_id)) {
+      return NextResponse.json({ error: "Access denied" }, { status: 403 })
+    }
+
+    const rows = readings.map((r) => ({
+      meter_id,
+      cooperative_id: meter.cooperative_id,
+      kwh_generated: r.kwh_generated,
+      kwh_self_consumed: r.kwh_self_consumed ?? null,
+      power_watts: r.power_watts ?? null,
+      interval_minutes: r.interval_minutes ?? 15,
+      reading_timestamp: r.reading_timestamp ?? null,
+      reading_date: r.reading_date ?? null,
+      source: "meter",
+      status: "pending",
+    }))
 
     const { data, error: insertError } = await supabase
       .from("readings")
       .insert(rows)
       .select()
 
-    if (insertError) {
-      return NextResponse.json({ error: insertError.message }, { status: 500 })
-    }
+    if (insertError) return safeDbError(insertError)
 
     return NextResponse.json(
       { inserted: data?.length ?? 0, readings: data },
       { status: 201 }
     )
-  } catch {
-    return NextResponse.json({ error: "Invalid request" }, { status: 400 })
+  } catch (err) {
+    return safeCatchError(err)
   }
 }

@@ -2,32 +2,22 @@ import { NextRequest, NextResponse } from "next/server"
 import * as StellarSdk from "@stellar/stellar-sdk"
 import { supabase } from "@/lib/supabase"
 import { CONTRACTS, STELLAR_CONFIG, NETWORK_PASSPHRASE } from "@/lib/contracts-config"
+import { requireAuth, isSession } from "@/lib/auth/middleware"
+import { validateBody } from "@/lib/validation/validate"
+import { retireSchema } from "@/lib/validation/schemas"
+import { safeDbError, safeCatchError } from "@/lib/errors/safe-error"
 
+// POST: authenticated — buyer retires certificate
 export async function POST(req: NextRequest) {
   try {
+    const session = await requireAuth()
+    if (!isSession(session)) return session
+
     const body = await req.json()
-    const { certificate_id, buyer_address, buyer_name, buyer_purpose } = body
+    const v = validateBody(retireSchema, body)
+    if (!v.success) return v.response
 
-    if (!certificate_id || !buyer_address || !buyer_purpose) {
-      return NextResponse.json(
-        { error: "Missing required fields: certificate_id, buyer_address, buyer_purpose" },
-        { status: 400 }
-      )
-    }
-
-    const validPurposes = [
-      "esg_reporting",
-      "carbon_offset",
-      "voluntary_commitment",
-      "regulatory_compliance",
-      "other",
-    ]
-    if (!validPurposes.includes(buyer_purpose)) {
-      return NextResponse.json(
-        { error: `buyer_purpose must be one of: ${validPurposes.join(", ")}` },
-        { status: 400 }
-      )
-    }
+    const { certificate_id, buyer_address, buyer_name, buyer_purpose } = v.data
 
     // Fetch certificate
     const { data: cert, error: certError } = await supabase
@@ -49,12 +39,12 @@ export async function POST(req: NextRequest) {
 
     const minterSecret = process.env.MINTER_SECRET_KEY
     if (!minterSecret) {
-      return NextResponse.json({ error: "MINTER_SECRET_KEY not configured" }, { status: 500 })
+      return NextResponse.json({ error: "Server configuration error" }, { status: 500 })
     }
 
     const contractAddress = CONTRACTS.ENERGY_TOKEN
     if (!contractAddress) {
-      return NextResponse.json({ error: "ENERGY_TOKEN contract not configured" }, { status: 500 })
+      return NextResponse.json({ error: "Server configuration error" }, { status: 500 })
     }
 
     // Burn on-chain
@@ -86,10 +76,9 @@ export async function POST(req: NextRequest) {
     const sendResult = await server.sendTransaction(preparedTx)
 
     if (sendResult.status === "ERROR") {
-      return NextResponse.json({ error: "Burn transaction failed to submit" }, { status: 500 })
+      return NextResponse.json({ error: "Burn transaction failed" }, { status: 500 })
     }
 
-    // Poll for confirmation
     let txResponse = await server.getTransaction(sendResult.hash)
     while (txResponse.status === "NOT_FOUND") {
       await new Promise((resolve) => setTimeout(resolve, 1000))
@@ -97,15 +86,11 @@ export async function POST(req: NextRequest) {
     }
 
     if (txResponse.status !== "SUCCESS") {
-      return NextResponse.json(
-        { error: `Burn transaction failed: ${txResponse.status}` },
-        { status: 500 }
-      )
+      return NextResponse.json({ error: "Burn transaction failed" }, { status: 500 })
     }
 
     const burnTxHash = sendResult.hash
 
-    // Create retirement record
     const { data: retirement, error: retireError } = await supabase
       .from("retirements")
       .insert({
@@ -119,11 +104,8 @@ export async function POST(req: NextRequest) {
       .select()
       .single()
 
-    if (retireError) {
-      return NextResponse.json({ error: retireError.message }, { status: 500 })
-    }
+    if (retireError) return safeDbError(retireError)
 
-    // Update certificate status
     await supabase
       .from("certificates")
       .update({ status: "retired" })
@@ -134,8 +116,7 @@ export async function POST(req: NextRequest) {
       retirement,
       burn_tx_hash: burnTxHash,
     })
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "Unknown error"
-    return NextResponse.json({ error: message }, { status: 500 })
+  } catch (err) {
+    return safeCatchError(err)
   }
 }

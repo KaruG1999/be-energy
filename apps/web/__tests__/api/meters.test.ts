@@ -1,21 +1,39 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
 import { NextRequest } from "next/server"
 
-const { mockSingle, mockOrder, mockFrom } = vi.hoisted(() => {
+const ADDR = "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+const COOP_ID = "00000000-0000-0000-0000-000000000001"
+
+const { mockSingle, mockOrder, mockIn, mockFrom } = vi.hoisted(() => {
   const mockSingle = vi.fn()
-  const mockOrder = vi.fn(() => ({ data: [], error: null }))
-  const mockEq: ReturnType<typeof vi.fn> = vi.fn(() => ({ order: mockOrder, eq: mockEq }))
+  const mockIn = vi.fn(() => ({ data: [], error: null }))
+  const mockOrder = vi.fn(() => ({ data: [], error: null, in: mockIn }))
+  const mockEq: ReturnType<typeof vi.fn> = vi.fn(() => ({ order: mockOrder, eq: mockEq, in: mockIn }))
   const mockSelect = vi.fn(() => ({ single: mockSingle }))
   const mockInsert = vi.fn(() => ({ select: mockSelect }))
   const mockFrom = vi.fn(() => ({
     select: vi.fn(() => ({ order: mockOrder, eq: mockEq })),
     insert: mockInsert,
   }))
-  return { mockSingle, mockOrder, mockFrom }
+  return { mockSingle, mockOrder, mockIn, mockFrom }
 })
 
 vi.mock("@/lib/supabase", () => ({
   supabase: { from: mockFrom },
+}))
+
+vi.mock("@/lib/auth/middleware", () => ({
+  requireAuth: vi.fn(async () => ({
+    sub: ADDR,
+    cooperative_ids: [COOP_ID],
+    admin_cooperative_ids: [COOP_ID],
+  })),
+  requireAdmin: vi.fn(async () => ({
+    sub: ADDR,
+    cooperative_ids: [COOP_ID],
+    admin_cooperative_ids: [COOP_ID],
+  })),
+  isSession: vi.fn(() => true),
 }))
 
 import { GET, POST } from "@/app/api/meters/route"
@@ -34,9 +52,9 @@ function makePost(body: Record<string, unknown>) {
 describe("GET /api/meters", () => {
   beforeEach(() => vi.clearAllMocks())
 
-  it("lista medidores", async () => {
+  it("lista medidores scoped a cooperativa", async () => {
     const fakeMeters = [{ id: "1", device_type: "inverter" }]
-    mockOrder.mockReturnValueOnce({ data: fakeMeters, error: null })
+    mockIn.mockReturnValueOnce({ data: fakeMeters, error: null })
 
     const res = await GET(makeGet())
     expect(res.status).toBe(200)
@@ -49,46 +67,42 @@ describe("POST /api/meters", () => {
   beforeEach(() => vi.clearAllMocks())
 
   it("rechaza sin campos requeridos → 400", async () => {
-    const res = await POST(makePost({ cooperative_id: "coop-1" }))
+    const res = await POST(makePost({ cooperative_id: COOP_ID }))
     expect(res.status).toBe(400)
     const json = await res.json()
-    expect(json.error).toMatch(/Missing required/)
+    expect(json.error).toMatch(/Validation failed/)
   })
 
   it("rechaza device_type inválido → 400", async () => {
     const res = await POST(
       makePost({
-        cooperative_id: "coop-1",
-        member_stellar_address: "GABC",
+        cooperative_id: COOP_ID,
+        member_stellar_address: ADDR,
         device_type: "toaster",
         technology: "solar",
         capacity_kw: 5,
       })
     )
     expect(res.status).toBe(400)
-    const json = await res.json()
-    expect(json.error).toMatch(/device_type/)
   })
 
   it("rechaza technology inválida → 400", async () => {
     const res = await POST(
       makePost({
-        cooperative_id: "coop-1",
-        member_stellar_address: "GABC",
+        cooperative_id: COOP_ID,
+        member_stellar_address: ADDR,
         device_type: "inverter",
         technology: "nuclear",
         capacity_kw: 5,
       })
     )
     expect(res.status).toBe(400)
-    const json = await res.json()
-    expect(json.error).toMatch(/technology/)
   })
 
   it("crea medidor válido → 201", async () => {
     const fakeMeter = {
       id: "meter-1",
-      cooperative_id: "coop-1",
+      cooperative_id: COOP_ID,
       device_type: "inverter",
       technology: "solar",
       capacity_kw: 5,
@@ -97,8 +111,8 @@ describe("POST /api/meters", () => {
 
     const res = await POST(
       makePost({
-        cooperative_id: "coop-1",
-        member_stellar_address: "GABC",
+        cooperative_id: COOP_ID,
+        member_stellar_address: ADDR,
         device_type: "inverter",
         technology: "solar",
         capacity_kw: 5,

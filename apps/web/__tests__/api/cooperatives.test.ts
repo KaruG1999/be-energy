@@ -1,6 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
 import { NextRequest } from "next/server"
 
+const ADDR = "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+
 const { mockSingle, mockOrder, mockFrom } = vi.hoisted(() => {
   const mockSingle = vi.fn()
   const mockOrder = vi.fn(() => ({ data: [], error: null }))
@@ -16,6 +18,20 @@ const { mockSingle, mockOrder, mockFrom } = vi.hoisted(() => {
 
 vi.mock("@/lib/supabase", () => ({
   supabase: { from: mockFrom },
+}))
+
+vi.mock("@/lib/auth/middleware", () => ({
+  requireAuth: vi.fn(async () => ({
+    sub: ADDR,
+    cooperative_ids: ["00000000-0000-0000-0000-000000000001"],
+    admin_cooperative_ids: ["00000000-0000-0000-0000-000000000001"],
+  })),
+  requireAdmin: vi.fn(async () => ({
+    sub: ADDR,
+    cooperative_ids: ["00000000-0000-0000-0000-000000000001"],
+    admin_cooperative_ids: ["00000000-0000-0000-0000-000000000001"],
+  })),
+  isSession: vi.fn(() => true),
 }))
 
 import { GET, POST } from "@/app/api/cooperatives/route"
@@ -53,16 +69,14 @@ describe("POST /api/cooperatives", () => {
     const res = await POST(makePost({ name: "Test" }))
     expect(res.status).toBe(400)
     const json = await res.json()
-    expect(json.error).toMatch(/Missing required/)
+    expect(json.error).toMatch(/Validation failed/)
   })
 
   it("rechaza technology inválida → 400", async () => {
     const res = await POST(
-      makePost({ name: "Test", technology: "nuclear", admin_stellar_address: "GABC" })
+      makePost({ name: "Test", technology: "nuclear", admin_stellar_address: ADDR })
     )
     expect(res.status).toBe(400)
-    const json = await res.json()
-    expect(json.error).toMatch(/technology/)
   })
 
   it("crea cooperativa válida → 201", async () => {
@@ -70,7 +84,7 @@ describe("POST /api/cooperatives", () => {
     mockSingle.mockResolvedValueOnce({ data: fakeCoop, error: null })
 
     const res = await POST(
-      makePost({ name: "Coop Solar", technology: "solar", admin_stellar_address: "GABC" })
+      makePost({ name: "Coop Solar", technology: "solar", admin_stellar_address: ADDR })
     )
     expect(res.status).toBe(201)
     const json = await res.json()
