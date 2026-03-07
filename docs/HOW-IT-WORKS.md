@@ -108,3 +108,27 @@ Los números exactos dependen de la cantidad de usuarios, el volumen de generaci
 - No es un activo cripto ni un instrumento de inversión.
 - No reemplaza a la cooperativa — la potencia operativamente.
 - No instala paneles, no maneja la red, no pone medidores.
+
+## Audiencia
+
+**Cliente principal: la cooperativa eléctrica.**
+
+- Argentina tiene 343+ cooperativas eléctricas distribuidas (CADER).
+- Gestionan créditos solares con planillas Excel o sistemas legacy.
+- Tienen el problema operativo hoy (conciliación manual, falta de trazabilidad).
+- Tienen autoridad legal para validar medición y habilitar reasignaciones.
+
+**¿Qué gana la cooperativa con BeEnergy?**
+
+- Digitalizar conciliación de créditos energéticos (menos trabajo manual).
+- Trazabilidad completa por usuario, período y volumen (auditable).
+- Ofrecer visibilidad al usuario-generador sin cambiar operativa existente.
+- Administrar reasignación de créditos según Ley 27.424 (cumplimiento normativo).
+- Dashboard operativo para gestionar todo desde un panel único.
+
+**Usuario final (indirecto):**
+
+- Usuario-generador: ve cuánto genera, cuánto tiene en créditos, cómo se aplican.
+- Usuario-consumidor: puede recibir créditos reasignados por la cooperativa.
+
+Pero el que paga y opera el sistema es la cooperativa.
