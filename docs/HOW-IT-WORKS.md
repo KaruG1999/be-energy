@@ -1,251 +1,110 @@
-# BeEnergy
+# BeEnergy — Cómo funciona
 
-### Tu excedente solar es tuyo. Vendelo, compartilo, decidí qué hacer con él.
+BeEnergy no es un mercado abierto de energía. Es infraestructura operativa para que cooperativas validen, rastreen y concilien créditos energéticos solares.
 
-BeEnergy convierte el excedente solar en un activo digital transferible entre vecinos. La ley, en Argentina, lo permite desde 2017. Nosotros lo hacemos posible.
+## El problema
 
----
+Miles de familias en Argentina instalaron paneles solares. Cuando generan más de lo que consumen, el excedente se inyecta a la red y la cooperativa les reconoce un crédito en la factura.
 
-## ¿Qué es BeEnergy?
+El problema no es que falte generación ni que la normativa lo impida — el Art. 12f de la Ley 27.424 habilita la transferencia de créditos entre socios del mismo distribuidor desde 2017. Lo que falta es la herramienta operativa para hacerlo funcionar en la práctica.
 
-Una red de usuarios con y sin paneles solares, dónde el usuario que cuenta con paneles y tiene excedente de energía eléctrica puede vendersela a otro usuario que esté conectado a la misma red — directamente, sin intermediarios, con la cooperativa como garante.
+**Hoy:**
 
----
+- El usuario no tiene visibilidad directa de cuánto genera.
+- El dato existe en el medidor, pero rara vez se presenta de forma accesible.
+- La conciliación suele depender de procesos manuales o sistemas poco integrados.
+- Sin registro trazable, sin visibilidad en tiempo real.
+- El crédito queda inmovilizado dentro del sistema de facturación.
+- No puede reasignarse fácilmente entre usuarios aunque la normativa contemple esa posibilidad.
 
-## Lo primero que hay que entender
+## Qué hace BeEnergy
 
-**La energía y los créditos son dos cosas separadas.**
+BeEnergy digitaliza la gestión de créditos energéticos dentro de una cooperativa.
 
-La energía (electrones) viaja por cables físicos. Siempre. No viaja por internet, no viaja por blockchain, no viaja por Stellar. Los electrones van del panel solar → al cable → a la red eléctrica. Punto.
+En otras palabras, BeEnergy funciona como el sistema operativo que registra y concilia la energía distribuida dentro de la cooperativa.
 
-Lo que sí viaja por Stellar es el **registro del crédito**: quién generó cuánta energía, quién la compró, y cuánto pagó. Es como un recibo digital inmutable.
+En términos prácticos, BeEnergy registra la generación distribuida, emite créditos energéticos validados por la cooperativa y concilia esos créditos con el sistema de facturación.
 
-Pensalo así: cuando hacés una transferencia bancaria, los billetes físicos no viajan por internet. Lo que viaja es la información del movimiento de plata. Con BeEnergy pasa lo mismo: la energía va por la red eléctrica, el crédito va por Stellar.
+La cooperativa administra el sistema, valida los datos y define las reglas de operación. Los usuarios participan dentro de ese marco.
 
----
+| Sin BeEnergy | Con BeEnergy |
+|---|---|
+| Conciliación manual por planilla | Registro automático y auditable |
+| El usuario no ve cuánto genera | Dashboard con historial de generación y créditos |
+| El crédito queda inmovilizado | Reasignación de créditos gestionada por la cooperativa (Art. 12f) |
+| Opacidad en la distribución del excedente | Trazabilidad completa por usuario y por cooperativa |
 
-## ¿Qué pasa hoy? (SIN BeEnergy)
+## Cómo funciona
 
-### La energía funciona, el crédito no
+### 1. El dato llega
 
-En Argentina, miles de familias instalaron paneles solares. Cuando les sobra energía, el excedente se inyecta a la red del barrio y la cooperativa les reconoce un crédito en la factura. Eso está bien.
+La cooperativa ya releva o administra la información de medición dentro del esquema actual de generación distribuida.
 
-Lo que no está bien es todo lo demás:
+- En el piloto lo carga manualmente o por CSV — sin hardware nuevo y con una implementación inicial simple.
+- En Fase 2, se integra con la infraestructura de medición existente y el dato llega automáticamente.
 
-**El prosumidor no sabe cuánto genera.** En entrevistas nos dijeron: "no sé cuánto consumo, voy calculando medio al azar". El medidor tiene el dato exacto, pero nadie se lo muestra. La factura llega una vez por mes (o cada dos), con un número que no se entiende.
+### 2. La cooperativa valida y se emite el crédito
 
-**No puede hacer nada con su crédito.** Si le sobra energía, el crédito queda ahí, acumulándose en la factura. No puede vendérselo al vecino que sí lo necesita. No puede ponerlo en un fondo comunitario. No puede decidir nada.
+Contra el dato validado, el sistema emite créditos energéticos digitales:
 
-**La ley dice que sí puede.** El Art. 12f de la Ley 27.424 (2017) habilita la transferencia de créditos entre usuarios del mismo distribuidor. Pero en 8 años, nadie construyó la herramienta para que eso pase.
+- **1 crédito = 1 kWh** de inyección validado por la cooperativa según la medición registrada.
+- El crédito mantiene una equivalencia fija con la energía validada.
+- No está diseñado como activo especulativo ni como instrumento de mercado abierto.
 
-**Resultado:** familias que invirtieron miles de dólares la instalación de paneles generan valor para el barrio y no reciben a cambio ni visibilidad, ni control, ni la posibilidad de compartir lo que producen.
+### 3. El usuario ve, la cooperativa opera
 
-BeEnergy existe para cambiar eso.
+Desde su dashboard, el usuario puede visualizar su generación y su saldo de créditos energéticos.
 
----
+La cooperativa administra la asignación y reasignación de créditos dentro del sistema según sus reglas operativas y el marco regulatorio vigente.
 
-## ¿Cómo funciona?
+### 4. Se aplica en factura
 
-### La capa física (los electrones — esto ya existe)
+El usuario receptor aplica sus créditos al consumo facturado.
 
-**Paso 1 → El sol pega en los paneles solares.** Una familia tiene paneles solares en el techo. El sol genera corriente continua (CC).
+La cooperativa los reconoce y los descuenta según sus reglas operativas. Todo queda registrado y es auditable.
 
-**Paso 2 → El inversor convierte la energía.** Un inversor ON GRID convierte esa corriente en 220V alterna — la misma que sale del enchufe. Si la familia consume más de lo que genera, toma el resto de la red. Si genera más de lo que consume, el excedente sale automáticamente a la red del barrio.
+## Por qué esto le sirve a la cooperativa
 
-**Paso 3 → El medidor cuenta todo.** El medidor bidireccional (obligatorio por ley) registra con precisión cuántos kWh entran a la casa y cuántos salen. Ese dato existe. Es exacto. La cooperativa lo lee periódicamente.
+BeEnergy no reemplaza a la cooperativa. Le da una herramienta operativa para:
 
-**Paso 4 → El excedente lo usa el vecino más cercano.** La energía inyectada entra a la red de baja tensión y la consume quien esté demandando en ese momento. Es física: el electrón va al punto de menor resistencia. El vecino ni se entera de que está usando energía del panel de al lado.
+- Digitalizar la conciliación de créditos energéticos dentro de la red de usuarios de la cooperativa.
+- Reducir procesos manuales de cálculo y aplicación en factura.
+- Tener trazabilidad completa por usuario, por período y por volumen.
+- Ofrecer visibilidad al usuario-generador sin cambiar la operativa existente.
+- Administrar la reasignación de créditos dentro de la red de la cooperativa, conforme a la Ley 27.424.
 
-```
-Sol → Panel → Inversor → Casa (autoconsumo)
-                           ↓ (si sobra)
-                       Red del barrio → Vecinos la consumen
-                           ↓
-                     Medidor registra kWh inyectados
-```
+Este tipo de enfoque ya tiene antecedentes institucionales en Argentina. En Córdoba, UTN, EPEC y Mundo Maipú trabajan en un sistema donde la energía inyectada genera tokens aplicables a facturas dentro de un esquema comunitario. BeEnergy lleva esa lógica al contexto cooperativo con una capa operativa y trazable.
 
-**Todo esto ya funciona.** BeEnergy no toca esta capa. No instalamos paneles, no manejamos la red, no ponemos medidores. Lo que hacemos es lo que viene después.
+## Por qué blockchain
 
----
+El registro de créditos se implementa sobre Stellar, lo que permite asegurar trazabilidad e inmutabilidad del historial sin depender de un registro interno cerrado.
 
-### La capa digital (los créditos — acá entra BeEnergy)
+El historial de emisiones, transferencias y aplicaciones puede ser auditado sin depender de que BeEnergy opere como intermediario central.
 
-**Paso 5 → El dato de inyección llega a BeEnergy**
+La blockchain funciona como capa de registro y auditoría. El producto visible para la cooperativa es el dashboard; Stellar queda por debajo, asegurando trazabilidad e inmutabilidad.
 
-El medidor ya midió cuántos kWh inyectó la familia. Ese dato tiene que llegar a nuestra plataforma. Cómo llega depende de la etapa:
+## Fases del producto
 
-**Hoy (piloto):** La cooperativa ya tiene el dato porque lee el medidor por ley. Lo carga en BeEnergy manualmente o por CSV. Simple, sin hardware nuevo, arrancamos mañana. Limitación: es mensual y depende de que el admin lo haga.
+**Fase 1 — Core (hoy)**
+Dashboard cooperativo + ledger de créditos. Emisión, visualización, reasignación de créditos gestionada por la cooperativa, conciliación con factura.
 
-**Mañana (producto real):** BeEnergy se integra con la infraestructura de medición existente de la cooperativa. Dependiendo de lo que ya tengan instalado, puede ser vía API directa de sus medidores inteligentes, o agregando sensores IoT de bajo costo (~USD 15-30) que se conectan a un gateway central (~USD 100-200, cubre varios km). El dato llega automático a nuestra API sin intervención humana. **Ahora el prosumidor abre el celular y ve cuánto está generando, verificable on-chain.** Esto resuelve la opacidad del cálculo.
+**Fase 2 — Integración automática**
+Conexión con la infraestructura de medición existente. El dato de inyección llega sin intervención manual.
 
-**Después (escala):** Con datos históricos, sumamos predicción (cuánto vas a generar mañana según el clima), optimización (cuándo conviene vender), y alertas (tu panel está rindiendo menos de lo esperado). La inteligencia no mide kWh — el sensor lo hace. La inteligencia interpreta y optimiza.
+**Fase 3 — Inteligencia operativa**
+Predicción de generación, optimización de la reasignación de créditos, alertas de anomalías.
 
-**Paso 6 → BeEnergy emite el crédito digital**
+## Modelo de negocio
 
-Contra el dato validado, el smart contract en Soroban emite HDROP a la wallet de la familia:
+Suscripción SaaS para cooperativas.
 
-```
-1 HDROP = 1 kWh de crédito de inyección verificado
-```
+La cooperativa paga por eficiencia operativa: menos trabajo manual, más trazabilidad, herramienta para cumplir con la normativa de generación distribuida.
 
-¿Quién autoriza? La cooperativa. Es la autoridad de medición reconocida por ley. En el piloto, el admin aprueba manualmente. Con el sensor, se auto-aprueba si el dato está dentro de parámetros normales. La cooperativa siempre mantiene control.
+Los números exactos dependen de la cantidad de usuarios, el volumen de generación y el perfil de cada cooperativa. El piloto validará estos supuestos.
 
-**Paso 7 → El prosumidor decide qué hacer con su energía**
+## Lo que BeEnergy no es
 
-Por primera vez, tiene opciones:
-
-**Vender a un vecino.** Lista sus HDROP en el mercado vecinal: "Vendo 100 kWh a $50 cada uno". El vecino acepta. Swap atómico en Stellar: créditos y pago se intercambian en un solo paso, ~5 segundos, costo prácticamente cero. Sin intermediarios.
-
-**Compartir con el barrio.** Deposita sus HDROP en el **fondo comunitario de energía** del barrio. Esto funciona con DeFindex, un protocolo de Stellar que crea "vaults" (bóvedas comunitarias). Pensalo como una alcancía del barrio: cada prosumidor pone créditos, y el fondo los reparte proporcionalmente entre los vecinos que participan. Una familia que genera mucho en verano puede aportar al fondo; un vecino sin paneles puede participar del fondo y recibir créditos a mejor precio que la tarifa plena. La cooperativa administra el fondo, DeFindex garantiza que la distribución sea transparente y automática — nadie puede tocar los créditos que no le corresponden.
-
-**Guardarlo.** Los HDROP quedan en su wallet. El crédito sigue existiendo en la factura como siempre. BeEnergy no reemplaza nada — agrega opciones.
-
-**Paso 8 → El vecino usa el crédito**
-
-El vecino que compró 100 HDROP los presenta. La cooperativa los reconoce como créditos transferidos bajo Art. 12f. Si consumió 400 kWh, le facturan solo 300. Accedió a energía solar local sin instalar un solo panel.
-
-**Paso 9 → Todo queda registrado**
-
-Cada emisión, venta, transferencia y redención queda en Stellar. Cualquier socio de la cooperativa puede verificar: cuánto se generó, quién lo tiene, a qué precio se vendió, cuándo se usó. Se acabó el Excel opaco.
-
----
-
-## EL DIAGRAMA
-
-```
-☀️ SOL
- │
- ▼
-┌─────────────┐
-│ PANEL SOLAR │
-└──────┬──────┘
-       │
-       ▼
-┌──────────────┐
-│  INVERSOR    │
-│  CC → CA     │
-└──────┬───────┘
-       │
-       ▼
-┌──────────────────────────────┐
-│         CASA                  │
-│  Consumo < generación → sobra │
-│  Excedente sale a la red      │
-└──────────────┬───────────────┘
-               │
-               ▼
-┌──────────────────────────────┐
-│   MEDIDOR BIDIRECCIONAL      │
-│   kWh entrada / kWh salida   │
-└──────────────┬───────────────┘
-               │
-═══════════════╪═══════════════════════════
-  CAPA FÍSICA ↑  (ya funciona sin nosotros)
-  CAPA DIGITAL ↓ (acá entra BeEnergy)
-═══════════════╪═══════════════════════════
-               │
-    ┌──────────┴──────────────────────┐
-    │                                  │
-    ▼ HOY (piloto)                     ▼ MAÑANA (producto real)
-┌──────────────────┐           ┌────────────────────┐
-│ Cooperativa      │           │ Sistema de         │
-│ carga dato       │           │ de transmisión     │
-│ manual / CSV     │           │ de datos           │
-└────────┬─────────┘           └─────────┬──────────┘
-         │                               │
-         │                               │
-         │                               │
-         │                               │
-         │                               │
-         ▼                               ▼
-┌──────────────────────────────────────────────┐
-│              API be.energy                    │
-│    Recibe dato → Valida → Dispara mint       │
-└──────────────────────┬───────────────────────┘
-                       │
-                       ▼
-┌──────────────────────────────────────────────┐
-│          SOROBAN: Mint HDROP                  │
-│         1 HDROP = 1 kWh verificado            │
-└──────────────────────┬───────────────────────┘
-                       │
-          ┌────────────┼────────────┐
-          ▼            ▼            ▼
-   ┌───────────┐ ┌──────────┐ ┌──────────┐
-   │  VENDER   │ │ COMPARTIR│ │ GUARDAR  │
-   │  a vecino │ │ en fondo │ │          │
-   │  (mercado │ │ comunita-│ │          │
-   │  vecinal) │ │ rio      │ │          │
-   │           │ │(DeFindex)│ │          │
-   └─────┬─────┘ └────┬─────┘ └──────────┘
-         │            │
-         ▼            ▼
-┌──────────────────────────────────────────────┐
-│          FACTURA COOPERATIVA                 │
-│  Vecino: 400 kWh - 100 HDROP = 300 facturados│
-└──────────────────────────────────────────────┘
-
-                 DESPUÉS (escala)
-                       │
-              ┌────────▼────────┐
-              │  INTELIGENCIA   │
-              │  Predicción     │
-              │  Optimización   │
-              │  Alertas        │
-              └─────────────────┘
-```
-
----
-
-## PREGUNTAS FRECUENTES
-
-**¿Necesito hardware especial para participar?**
-Para el piloto, no. Para el producto real, integrar un sistema de transmisión de datos, si es que la cooperativa ya no lo tiene integrado. Y un celular.
-
-**¿La energía se reparte por blockchain?**
-No. La energía va por cables, siempre. Blockchain reparte los **créditos**: el derecho económico sobre esa energía. Son dos capas independientes.
-
-**¿El vecino que compra HDROP recibe los electrones del prosumidor?**
-No necesariamente. Recibe el crédito económico. La energía física va a cualquier punto de la red. Pero el crédito es verificable y se aplica en factura. 
-
-**¿Dónde entra la inteligencia artificial?**
-En la tercera etapa. Predice generación, optimiza cuándo vender, detecta anomalías. Pero para medir kWh no se necesita — el sensor lo hace con precisión.
-
-**¿El prosumidor que "calcula al azar" cuánto genera?**
-Ese es exactamente el dolor que resolvemos. Hoy el dato está encerrado en el medidor y la factura llega tarde. Con BeEnergy, lo ve desde el celular — en tiempo real con el sensor, o con desglose mensual en el piloto.
-
-**¿Y si la cooperativa no quiere cargar datos?**
-Por eso el sistema de transmisión de datos, es el producto real. En el piloto dependemos de la cooperativa, pero la evolución natural es automatizar la captura. El dato llega solo.
-
----
-
-## ¿Qué hace BeEnergy y qué no?
-
-| Componente | ¿Qué hace? | ¿BeEnergy? |
-|---|---|---|
-| Panel solar | Genera electricidad | No |
-| Inversor | Convierte CC→CA, inyecta excedente | No |
-| Medidor bidireccional | Cuenta kWh entrada/salida | No (lee el dato) |
-| Red eléctrica | Transporta electrones | No |
-| Gateway      | Recibe datos, envía a API | Fase 2 |
-| API + Dashboard | Visibilidad para prosumidor y cooperativa | Si |
-| Smart contract Soroban | Emite HDROP contra lectura validada | Si |
-| Mercado vecinal | Venta de créditos entre vecinos | Si |
-| Fondo comunitario (DeFindex) | Bóveda de energía solar del barrio | Si |
-| Wallet | El prosumidor gestiona sus créditos | Si |
-| Capa de inteligencia | Predicción, optimización, alertas | Fase 3 |
-
----
-
-## EN UNA IMAGEN
-
-**Sin BeEnergy:** Generás energía solar → la cooperativa te da un número en la factura → no podés hacer nada con él → tu vecino no puede acceder.
-
-**Con BeEnergy:** Generás energía solar → ves en tu celular cuánto generaste → lo convertís en un crédito digital → se lo vendés a tu vecino en el mercado vecinal o lo depositás en el fondo comunitario del barrio → la cooperativa lo reconoce en factura → todo queda registrado.
-
----
-
-BeEnergy no cambia cómo fluye la electricidad.
-Cambia quién decide qué hacer con su valor.
-
-Cada familia con paneles deja de ser un número en la factura de la cooperativa y se convierte en un nodo activo de una red energética local. Puede vender. Puede compartir. Puede decidir. Eso no existía. Ahora sí.
+- No es un mercado abierto de energía.
+- No es un activo cripto ni un instrumento de inversión.
+- No reemplaza a la cooperativa — la potencia operativamente.
+- No instala paneles, no maneja la red, no pone medidores.
