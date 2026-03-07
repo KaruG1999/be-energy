@@ -14,7 +14,7 @@
        │ dato de lectura (kWh, fecha, medidor_id)
        │
        │ Fase 1: carga manual / CSV
-       │ Fase 2: API automática del medidor
+       │ Fase 2: integración automática (ver abajo)
        ▼
 ┌──────────────┐
 │  Cooperativa │  Admin humano con acceso al dashboard
@@ -57,6 +57,60 @@
 │  El usuario no necesita saber qué es blockchain  │
 └──────────────────────────────────────────────────┘
 ```
+
+---
+
+## Integración con medidores (Fase 2)
+
+La infraestructura de medición remota ya existe en Argentina. BeEnergy no instala hardware — se conecta a lo que la cooperativa ya tiene o va a tener (plazo regulatorio: diciembre 2028).
+
+### Fuentes de datos
+
+```
+Opción A: Inversor solar (API REST del fabricante)
+┌──────────────┐     ┌─────────────────────────────┐
+│  Inversor    │────▶│  API del fabricante          │
+│  Fronius /   │     │                             │
+│  Huawei /    │     │  Fronius: Solar API (JSON)   │
+│  SMA         │     │  Huawei: OpenAPI             │
+└──────────────┘     │  SMA: Sunny Portal API       │
+                     │                             │
+                     │  Dato: kWh generados,        │
+                     │  kWh inyectados, potencia    │
+                     │  Frecuencia: cada 1 min      │
+                     └──────────────┬──────────────┘
+                                    │
+                                    ▼
+                          POST /api/readings
+
+Opción B: Medidor bidireccional (vía sistema HES de la cooperativa)
+┌──────────────┐     ┌─────────────────────────────┐
+│  Medidor     │────▶│  HES / MDM cooperativa      │
+│  bidireccional│     │                             │
+│  (DLMS/COSEM)│     │  Protocolo: IEC 62056       │
+│              │     │  Lectura cada 15 min         │
+└──────────────┘     │  Energía activa/reactiva     │
+                     │  Import + export (OBIS)      │
+                     │                             │
+                     │  Ej: DISCAR Mr.DiMS          │
+                     │  (Justiniano Posse, Vicuña   │
+                     │   Mackenna - Córdoba)         │
+                     └──────────────┬──────────────┘
+                                    │
+                                    ▼
+                          POST /api/readings
+```
+
+### Qué cambia en BeEnergy para Fase 2
+
+| Componente | Fase 1 (hoy) | Fase 2 |
+|------------|-------------|--------|
+| Ingesta de datos | Manual / CSV | Webhook o polling desde API del inversor o HES |
+| `/api/readings` | Recibe JSON del admin | Recibe JSON del sistema de medición |
+| Validación | Admin revisa y aprueba | Auto-validación con reglas + revisión por excepción |
+| Frecuencia | Cuando la cooperativa carga | Cada 15 min (medidor) o 1 min (inversor) |
+
+No se necesita hardware nuevo. La cooperativa ya tiene medidores bidireccionales (obligatorios para generación distribuida) y muchas ya tienen lectura remota.
 
 ---
 
