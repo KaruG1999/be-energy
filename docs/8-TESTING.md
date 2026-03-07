@@ -67,6 +67,71 @@ El test limpia automáticamente los datos de Supabase al finalizar (retirements,
 
 ---
 
+## Simulacro de compra — circuito de negocio completo
+
+Simulación realista del flujo de compra de un certificado de energía renovable. Una cooperativa en Misiones genera energía, certifica, y una empresa compradora retira el certificado para su reporte ESG.
+
+```bash
+npx tsx scripts/simulate-purchase.ts
+```
+
+### Escenario
+
+**Vendedor:** Cooperativa Solar Misiones (3 prosumers con paneles solares)
+**Comprador:** GreenCorp SA (empresa que necesita certificados para reporte ESG)
+
+### Flujo paso a paso
+
+| Paso | Qué pasa | Quién actúa |
+|------|----------|-------------|
+| 1 | Crear wallets Stellar + fondear con Friendbot | Sistema |
+| 2 | Registrar cooperativa + 3 prosumers (María, Juan, Ana) | Admin cooperativa |
+| 3 | Instalar 3 medidores inteligentes (5 kW, 3.5 kW, 4.2 kW) | Admin cooperativa |
+| 4 | 28 días de lecturas (curva solar, ~4700 lecturas, ~2100 kWh) | Medidores (automático) |
+| 5 | Crear proto-certificado con el total del mes | Admin cooperativa |
+| 6 | **Mint on-chain** — tokenizar el certificado en Stellar | Plataforma (minter) |
+| 7 | **Compra/Retiro** — GreenCorp SA retira el certificado (burn) | Empresa compradora |
+
+### Cómo funciona la "compra"
+
+1. El certificado se crea con status `pending` a partir de las lecturas reales
+2. Se mintean tokens en Stellar representando los kWh (`mint_energy` → status `available`)
+3. La empresa compradora contacta a la cooperativa off-chain (contrato comercial, pago)
+4. La plataforma ejecuta el retiro: quema los tokens on-chain (`burn_energy` → status `retired`)
+5. Se crea un registro de retiro en la DB con los datos del comprador y el hash de la tx
+6. La empresa puede usar el hash de la tx como prueba verificable de su compra
+
+El pago es off-chain. Lo que queda on-chain es la prueba criptográfica de que esos kWh existieron (mint) y fueron retirados por un comprador específico (burn).
+
+### Última ejecución (2026-03-07)
+
+| Dato | Valor |
+|------|-------|
+| Cooperativa | Cooperativa Solar Misiones (Posadas) |
+| Prosumers | 3 (María García, Juan Rodríguez, Ana López) |
+| Medidores | 3 smart meters (5 + 3.5 + 4.2 kW) |
+| Período | Febrero 2026 (28 días) |
+| Lecturas | 4,704 (cada 15 min, 6:00–20:00) |
+| Energía certificada | 2,102.1 kWh solar |
+| CO₂ evitado | ~841 kg |
+| Comprador | GreenCorp SA (ESG reporting) |
+| Tiempo total | ~46s |
+
+### Transacciones verificables en Stellar Explorer
+
+| Operación | Tx | Explorer |
+|-----------|-----|---------|
+| **Mint** (2,102.1 kWh) | `09238d0f...` | [Stellar Expert](https://stellar.expert/explorer/testnet/tx/09238d0f647804fa896774524128dabcf9b226d1e310ad00830064a25dcc710a) |
+| **Burn/Retiro** (2,102.1 kWh) | `aaaf99f7...` | [Stellar Expert](https://stellar.expert/explorer/testnet/tx/aaaf99f7ba60822d999de0b00d4ec0428f5849a588a80ce343722617ca270f0a) |
+
+Contrato: Energy Token [`CCYOVOFDJ5...`](https://stellar.expert/explorer/testnet/contract/CCYOVOFDJ5BVBSI6HADLWETTUF3BU423MEAWBSBWV2X5UVNKSJMRPBA6)
+
+### Modelo custodial
+
+Los tokens se mintean a la address del minter (plataforma) y se queman desde la misma address al retirar. El buyer se registra en la tabla `retirements` pero no necesita tener tokens on-chain. Esto permite que el server-side maneje todo el ciclo con una sola clave privada (`MINTER_SECRET_KEY`).
+
+---
+
 ## Smart Meter Mock
 
 Simulador de medidores inteligentes para generar datos realistas.
@@ -109,7 +174,13 @@ cd apps/contracts && cargo test
 npx tsx scripts/integration-test.ts
 ```
 
-Requiere `apps/web/.env.local` con las variables de Stellar y Supabase configuradas.
+### Simulacro de compra (Stellar Testnet)
+
+```bash
+npx tsx scripts/simulate-purchase.ts
+```
+
+Ambos requieren `apps/web/.env.local` con las variables de Stellar y Supabase configuradas.
 
 ### Setup DB (primera vez o migración)
 
