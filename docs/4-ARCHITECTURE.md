@@ -203,7 +203,7 @@ be-energy/
 └─────────────────────────┘
 ```
 
-**Detalle de contratos:** ver `docs/CONTRACTS.md`
+**Detalle de contratos:** ver `docs/5-CONTRACTS.md`
 
 ---
 

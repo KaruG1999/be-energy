@@ -59,7 +59,7 @@ Deployed on Stellar Testnet:
 
 Built with **OpenZeppelin Stellar v0.5.1** (Pausable + Upgradeable) and **Soroban SDK 23.1.0**.
 
-65 tests passing. See [docs/CONTRACTS.md](docs/CONTRACTS.md) for full reference.
+65 tests passing. See [docs/5-CONTRACTS.md](docs/5-CONTRACTS.md) for full reference.
 
 ---
 
