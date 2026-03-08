@@ -198,6 +198,7 @@ export async function POST(req: NextRequest) {
     if (readingId) {
       return markFailed(readingId, message)
     }
-    return safeCatchError(error)
+    // Temporarily expose error for debugging (remove in production)
+    return NextResponse.json({ error: message }, { status: 500 })
   }
 }
