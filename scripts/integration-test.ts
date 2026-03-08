@@ -65,7 +65,7 @@ async function mintOnChain(toAddress: string, amountKwh: number): Promise<string
         StellarSdk.nativeToScVal(minterPublic, { type: "address" })
       )
     )
-    .setTimeout(30)
+    .setTimeout(60)
     .build()
 
   let prepared: StellarSdk.Transaction
@@ -116,7 +116,7 @@ async function burnOnChain(amountKwh: number): Promise<string> {
         StellarSdk.nativeToScVal(amountInStroops, { type: "i128" })
       )
     )
-    .setTimeout(30)
+    .setTimeout(60)
     .build()
 
   let prepared: StellarSdk.Transaction
