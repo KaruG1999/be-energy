@@ -7,7 +7,8 @@ import { useI18n } from "@/lib/i18n-context"
 import { Sidebar } from "@/components/sidebar"
 import { DashboardHeader } from "@/components/dashboard-header"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { User, Copy, Check, RefreshCw, ArrowDownLeft, ArrowUpRight, Users, Zap, TrendingUp, AlertCircle, AlertTriangle, Award, Leaf, Flame, HelpCircle, Gauge, FileText, Building2 } from "lucide-react"
+import { User, Copy, Check, RefreshCw, ArrowDownLeft, ArrowUpRight, Users, Zap, TrendingUp, AlertCircle, AlertTriangle, Award, Leaf, Flame, Gauge, FileText, Building2 } from "lucide-react"
+import { InfoTooltip } from "@/components/shared/info-tooltip"
 import { useAuth } from "@/lib/auth-context"
 import { RegisterCooperativeModal } from "@/components/modals/register-cooperative-modal"
 import { useEnergyToken } from "@/hooks/useEnergyToken"
@@ -20,17 +21,6 @@ import { useMyReadings } from "@/hooks/useMyReadings"
 import { Spinner } from "@/components/ui/spinner"
 import { Button } from "@/components/ui/button"
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts"
-
-function InfoTooltip({ text }: { text: string }) {
-  return (
-    <div className="relative group inline-flex">
-      <HelpCircle className="w-4 h-4 text-muted-foreground/50 hover:text-muted-foreground cursor-help" />
-      <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 text-xs bg-foreground text-background rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-lg">
-        {text}
-      </span>
-    </div>
-  )
-}
 
 function formatRelativeTime(dateString: string): string {
   const now = new Date()

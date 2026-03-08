@@ -12,6 +12,7 @@ import { StatusBadge } from "@/components/shared/status-badge"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Spinner } from "@/components/ui/spinner"
 import { Building2, Users, Zap, Award, Shield, ShieldAlert, ArrowRight, ExternalLink } from "lucide-react"
+import { InfoTooltip } from "@/components/shared/info-tooltip"
 
 export default function SuperAdminPage() {
   const { isConnected, isPending: walletPending } = useWallet()
@@ -72,28 +73,40 @@ export default function SuperAdminPage() {
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                 <Card>
                   <CardContent className="p-4 text-center">
-                    <Building2 className="w-5 h-5 text-primary mx-auto mb-2" />
+                    <div className="flex items-center justify-center gap-1 mb-2">
+                      <Building2 className="w-5 h-5 text-primary" />
+                      <InfoTooltip text={t("superAdmin.tooltip.cooperatives")} />
+                    </div>
                     <p className="text-2xl font-bold">{stats.totals.cooperatives}</p>
                     <p className="text-xs text-muted-foreground">{t("superAdmin.cooperatives")}</p>
                   </CardContent>
                 </Card>
                 <Card>
                   <CardContent className="p-4 text-center">
-                    <Users className="w-5 h-5 text-energy-green mx-auto mb-2" />
+                    <div className="flex items-center justify-center gap-1 mb-2">
+                      <Users className="w-5 h-5 text-energy-green" />
+                      <InfoTooltip text={t("superAdmin.tooltip.members")} />
+                    </div>
                     <p className="text-2xl font-bold">{stats.totals.members}</p>
                     <p className="text-xs text-muted-foreground">{t("superAdmin.members")}</p>
                   </CardContent>
                 </Card>
                 <Card>
                   <CardContent className="p-4 text-center">
-                    <Zap className="w-5 h-5 text-solar-orange mx-auto mb-2" />
+                    <div className="flex items-center justify-center gap-1 mb-2">
+                      <Zap className="w-5 h-5 text-solar-orange" />
+                      <InfoTooltip text={t("superAdmin.tooltip.kwhCertified")} />
+                    </div>
                     <p className="text-2xl font-bold">{stats.totals.total_kwh_certified.toLocaleString()}</p>
                     <p className="text-xs text-muted-foreground">{t("superAdmin.kwhCertified")}</p>
                   </CardContent>
                 </Card>
                 <Card>
                   <CardContent className="p-4 text-center">
-                    <Award className="w-5 h-5 text-web3-purple mx-auto mb-2" />
+                    <div className="flex items-center justify-center gap-1 mb-2">
+                      <Award className="w-5 h-5 text-web3-purple" />
+                      <InfoTooltip text={t("superAdmin.tooltip.totalCertificates")} />
+                    </div>
                     <p className="text-2xl font-bold">{stats.totals.certificates_total}</p>
                     <p className="text-xs text-muted-foreground">{t("superAdmin.totalCertificates")}</p>
                   </CardContent>
@@ -106,6 +119,7 @@ export default function SuperAdminPage() {
                   <CardTitle className="text-lg flex items-center gap-2">
                     <Building2 className="w-5 h-5" />
                     {t("superAdmin.allCooperatives")}
+                    <InfoTooltip text={t("superAdmin.tooltip.allCooperatives")} />
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -150,6 +164,7 @@ export default function SuperAdminPage() {
                   <CardTitle className="text-lg flex items-center gap-2">
                     <Award className="w-5 h-5" />
                     {t("superAdmin.pipeline")}
+                    <InfoTooltip text={t("superAdmin.tooltip.pipeline")} />
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -177,7 +192,10 @@ export default function SuperAdminPage() {
                 {/* Recent Mints */}
                 <Card>
                   <CardHeader>
-                    <CardTitle className="text-lg">{t("superAdmin.recentMints")}</CardTitle>
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      {t("superAdmin.recentMints")}
+                      <InfoTooltip text={t("superAdmin.tooltip.recentMints")} />
+                    </CardTitle>
                     <CardDescription>Stellar Testnet</CardDescription>
                   </CardHeader>
                   <CardContent>
@@ -214,7 +232,10 @@ export default function SuperAdminPage() {
                 {/* Recent Retirements */}
                 <Card>
                   <CardHeader>
-                    <CardTitle className="text-lg">{t("superAdmin.recentRetirements")}</CardTitle>
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      {t("superAdmin.recentRetirements")}
+                      <InfoTooltip text={t("superAdmin.tooltip.recentRetirements")} />
+                    </CardTitle>
                   </CardHeader>
                   <CardContent>
                     {stats.recent_retirements.length === 0 ? (

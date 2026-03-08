@@ -23,6 +23,7 @@ import { SubmitReadingModal } from "@/components/modals/submit-reading-modal"
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from "recharts"
+import { InfoTooltip } from "@/components/shared/info-tooltip"
 
 type Period = "week" | "month" | "year"
 
@@ -168,6 +169,7 @@ export default function CooperativeAdminPage() {
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between mb-2">
                       <Zap className="w-4 h-4 text-energy-green" />
+                      <InfoTooltip text={t("coopAdmin.tooltip.totalGeneration")} />
                     </div>
                     <p className="text-2xl font-bold">{stats.total_generation_kwh.toLocaleString()}</p>
                     <p className="text-xs text-muted-foreground">{t("coopAdmin.totalGeneration")} (kWh)</p>
@@ -178,6 +180,7 @@ export default function CooperativeAdminPage() {
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between mb-2">
                       <Gauge className="w-4 h-4 text-solar-orange" />
+                      <InfoTooltip text={t("coopAdmin.tooltip.totalCapacity")} />
                     </div>
                     <p className="text-2xl font-bold">{stats.total_capacity_kw} <span className="text-sm font-normal text-muted-foreground">kW</span></p>
                     <p className="text-xs text-muted-foreground">{t("coopAdmin.totalCapacity")}</p>
@@ -188,6 +191,7 @@ export default function CooperativeAdminPage() {
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between mb-2">
                       <Activity className="w-4 h-4 text-web3-purple" />
+                      <InfoTooltip text={t("coopAdmin.tooltip.metersOnline")} />
                     </div>
                     <p className="text-2xl font-bold">
                       {metersOnline}<span className="text-sm font-normal text-muted-foreground">/{metersTotal}</span>
@@ -200,6 +204,7 @@ export default function CooperativeAdminPage() {
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between mb-2">
                       <Users className="w-4 h-4 text-primary" />
+                      <InfoTooltip text={t("coopAdmin.tooltip.members")} />
                     </div>
                     <p className="text-2xl font-bold">{stats.member_count}</p>
                     <p className="text-xs text-muted-foreground">
@@ -223,6 +228,7 @@ export default function CooperativeAdminPage() {
                       <CardTitle className="text-lg flex items-center gap-2">
                         <Zap className="w-5 h-5 text-energy-green" />
                         {t("coopAdmin.generationChart")}
+                        <InfoTooltip text={t("coopAdmin.tooltip.generationChart")} />
                       </CardTitle>
                       {chartData.length > 0 && (
                         <CardDescription className="mt-1">
@@ -303,6 +309,7 @@ export default function CooperativeAdminPage() {
                       <CardTitle className="text-lg flex items-center gap-2">
                         <Award className="w-5 h-5" />
                         {t("coopAdmin.pipeline")}
+                        <InfoTooltip text={t("coopAdmin.tooltip.pipeline")} />
                       </CardTitle>
                       <Button size="sm" variant="outline" onClick={() => setShowCreateCert(true)} className="gap-1">
                         <Plus className="w-3.5 h-3.5" />
@@ -351,6 +358,36 @@ export default function CooperativeAdminPage() {
                       </div>
                     )}
 
+                    {/* Available certificates with Stellar Expert link */}
+                    {certificates.filter((c) => c.status === "available").length > 0 && (
+                      <div className="space-y-2 mt-2">
+                        {certificates
+                          .filter((c) => c.status === "available")
+                          .slice(0, 5)
+                          .map((cert) => (
+                            <div key={cert.id} className="flex items-center gap-3 p-3 rounded-lg bg-energy-green/5 border border-energy-green/10">
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium">{cert.total_kwh.toLocaleString()} kWh</p>
+                                <p className="text-xs text-muted-foreground">
+                                  {cert.technology} · {new Date(cert.generation_period_start).toLocaleDateString()} – {new Date(cert.generation_period_end).toLocaleDateString()}
+                                </p>
+                              </div>
+                              <StatusBadge status="available" />
+                              {cert.mint_tx_hash && (
+                                <a
+                                  href={`https://stellar.expert/explorer/testnet/tx/${cert.mint_tx_hash}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-energy-green hover:text-energy-green/80"
+                                >
+                                  <ExternalLink className="w-4 h-4" />
+                                </a>
+                              )}
+                            </div>
+                          ))}
+                      </div>
+                    )}
+
                     {certificates.length === 0 && (
                       <p className="text-sm text-muted-foreground text-center py-2">{t("coopAdmin.noCertificates")}</p>
                     )}
@@ -363,6 +400,7 @@ export default function CooperativeAdminPage() {
                     <CardTitle className="text-lg flex items-center gap-2">
                       <Leaf className="w-5 h-5 text-energy-green" />
                       {t("coopAdmin.environmentalImpact")}
+                      <InfoTooltip text={t("coopAdmin.tooltip.environmentalImpact")} />
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-6">
@@ -388,6 +426,7 @@ export default function CooperativeAdminPage() {
                     <CardTitle className="text-lg flex items-center gap-2">
                       <Gauge className="w-5 h-5 text-solar-orange" />
                       {t("coopAdmin.metersHealth")}
+                      <InfoTooltip text={t("coopAdmin.tooltip.metersHealth")} />
                     </CardTitle>
                     <Button size="sm" variant="outline" onClick={() => setShowAddMeter(true)} className="gap-1">
                       <Plus className="w-3.5 h-3.5" />
@@ -452,6 +491,7 @@ export default function CooperativeAdminPage() {
                     <CardTitle className="text-lg flex items-center gap-2">
                       <Activity className="w-5 h-5 text-web3-purple" />
                       {t("coopAdmin.activityFeed")}
+                      <InfoTooltip text={t("coopAdmin.tooltip.activityFeed")} />
                     </CardTitle>
                     <Button size="sm" variant="outline" onClick={() => setShowSubmitReading(true)} className="gap-1">
                       <Plus className="w-3.5 h-3.5" />

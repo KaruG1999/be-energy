@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { ArrowLeft, Award, Zap, Flame, Leaf, ExternalLink, ChevronDown, ChevronUp, AlertCircle } from "lucide-react"
+import { InfoTooltip } from "@/components/shared/info-tooltip"
 import { Spinner } from "@/components/ui/spinner"
 import { useAuth } from "@/lib/auth-context"
 import { RetireCertificateModal } from "@/components/modals/retire-certificate-modal"
@@ -160,31 +161,35 @@ export default function CertificatesPage() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <div className="flex items-center gap-3 p-3 rounded-lg bg-energy-green/10 border border-energy-green/20">
                 <Zap className="w-5 h-5 text-energy-green shrink-0" />
-                <div>
+                <div className="flex-1">
                   <p className="text-lg font-bold text-energy-green">{stats.total_kwh_certified.toLocaleString()}</p>
                   <p className="text-xs text-muted-foreground">{t("certificates.stats.certified")}</p>
                 </div>
+                <InfoTooltip text={t("certificates.tooltip.certified")} />
               </div>
               <div className="flex items-center gap-3 p-3 rounded-lg bg-solar-orange/10 border border-solar-orange/20">
                 <Flame className="w-5 h-5 text-solar-orange shrink-0" />
-                <div>
+                <div className="flex-1">
                   <p className="text-lg font-bold text-solar-orange">{stats.total_kwh_retired.toLocaleString()}</p>
                   <p className="text-xs text-muted-foreground">{t("certificates.stats.retired")}</p>
                 </div>
+                <InfoTooltip text={t("certificates.tooltip.retired")} />
               </div>
               <div className="flex items-center gap-3 p-3 rounded-lg bg-web3-purple/10 border border-web3-purple/20">
                 <Leaf className="w-5 h-5 text-web3-purple shrink-0" />
-                <div>
+                <div className="flex-1">
                   <p className="text-lg font-bold text-web3-purple">{stats.co2_avoided_kg.toLocaleString()}</p>
                   <p className="text-xs text-muted-foreground">{t("certificates.stats.co2")}</p>
                 </div>
+                <InfoTooltip text={t("certificates.tooltip.co2")} />
               </div>
               <div className="flex items-center gap-3 p-3 rounded-lg bg-solar-yellow/10 border border-solar-yellow/20">
                 <Award className="w-5 h-5 text-solar-yellow shrink-0" />
-                <div>
+                <div className="flex-1">
                   <p className="text-lg font-bold text-solar-yellow">{stats.certificates_available}</p>
                   <p className="text-xs text-muted-foreground">{t("certificates.stats.available")}</p>
                 </div>
+                <InfoTooltip text={t("certificates.tooltip.available")} />
               </div>
             </div>
           )}
