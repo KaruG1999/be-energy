@@ -35,11 +35,12 @@ export function WalletConfirmationModal({ isOpen, onClose, onConfirm }: WalletCo
     setError(null)
     try {
       await onConfirm()
-      handleClose()
-    } catch (err) {
-      setError(err instanceof Error ? err.message : t("wallet.error.message"))
-    } finally {
       setIsConnecting(false)
+      onClose()
+    } catch (err) {
+      setIsConnecting(false)
+      const msg = err instanceof Error ? err.message : null
+      setError(typeof msg === "string" ? msg : t("wallet.error.message"))
     }
   }
 

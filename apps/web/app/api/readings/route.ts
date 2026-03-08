@@ -5,6 +5,57 @@ import { validateBody } from "@/lib/validation/validate"
 import { createReadingSchema } from "@/lib/validation/schemas"
 import { safeDbError, safeCatchError } from "@/lib/errors/safe-error"
 
+// GET: authenticated — scoped to caller's cooperatives
+export async function GET(req: NextRequest) {
+  try {
+    const session = await requireAuth()
+    if (!isSession(session)) return session
+
+    const { searchParams } = new URL(req.url)
+    const cooperativeId = searchParams.get("cooperative_id")
+    const stellarAddress = searchParams.get("stellar_address")
+    const limit = Math.min(Number(searchParams.get("limit")) || 50, 100)
+
+    let query = supabase
+      .from("readings")
+      .select("*, prosumers(name, stellar_address)")
+      .order("created_at", { ascending: false })
+      .limit(limit)
+
+    if (cooperativeId) {
+      if (!session.cooperative_ids.includes(cooperativeId)) {
+        return NextResponse.json({ error: "Access denied" }, { status: 403 })
+      }
+      query = query.eq("cooperative_id", cooperativeId)
+    } else if (session.cooperative_ids.length > 0) {
+      query = query.in("cooperative_id", session.cooperative_ids)
+    } else {
+      return NextResponse.json([])
+    }
+
+    if (stellarAddress) {
+      const { data: prosumer } = await supabase
+        .from("prosumers")
+        .select("id")
+        .eq("stellar_address", stellarAddress)
+        .single()
+
+      if (prosumer) {
+        query = query.eq("prosumer_id", prosumer.id)
+      } else {
+        return NextResponse.json([])
+      }
+    }
+
+    const { data, error } = await query
+    if (error) return safeDbError(error)
+
+    return NextResponse.json(data ?? [])
+  } catch (err) {
+    return safeCatchError(err)
+  }
+}
+
 // POST: authenticated — member or admin of the cooperative
 export async function POST(req: NextRequest) {
   try {
@@ -45,11 +96,33 @@ export async function POST(req: NextRequest) {
     if (meter_id) {
       const { data: meter } = await supabase
         .from("meters")
-        .select("cooperative_id")
+        .select("cooperative_id, member_stellar_address")
         .eq("id", meter_id)
         .single()
 
-      if (meter && !coopId) coopId = meter.cooperative_id
+      if (meter) {
+        if (!coopId) coopId = meter.cooperative_id
+        if (!prosumerId && meter.member_stellar_address) {
+          let { data: prosumer } = await supabase
+            .from("prosumers")
+            .select("id")
+            .eq("stellar_address", meter.member_stellar_address)
+            .single()
+          if (!prosumer) {
+            const { data: created } = await supabase
+              .from("prosumers")
+              .insert({
+                stellar_address: meter.member_stellar_address,
+                cooperative_id: coopId,
+                role: "prosumer",
+              })
+              .select("id")
+              .single()
+            prosumer = created
+          }
+          if (prosumer) prosumerId = prosumer.id
+        }
+      }
     }
 
     // Authorization: must be member of the cooperative
@@ -81,6 +154,7 @@ export async function POST(req: NextRequest) {
         meter_id: meter_id ?? null,
         cooperative_id: coopId,
         kwh_generated: kwhGen,
+        kwh_injected: kwhGen, // legacy NOT NULL column
         kwh_self_consumed: kwhSelf ?? null,
         power_watts: power_watts ?? null,
         interval_minutes: interval_minutes ?? 15,

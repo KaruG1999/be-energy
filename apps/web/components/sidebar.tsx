@@ -2,7 +2,8 @@
 
 import { usePathname, useRouter } from "next/navigation"
 import { useI18n } from "@/lib/i18n-context"
-import { Home, History, LogOut, Leaf, Zap } from "lucide-react"
+import { useAuth } from "@/lib/auth-context"
+import { Home, History, LogOut, Leaf, Zap, Award, Building2, Shield } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useWallet } from "@/lib/wallet-context"
 import { cn } from "@/lib/utils"
@@ -12,6 +13,7 @@ export function Sidebar() {
   const router = useRouter()
   const { disconnectWallet } = useWallet()
   const { t } = useI18n()
+  const { session } = useAuth()
 
   const handleDisconnect = () => {
     disconnectWallet()
@@ -20,17 +22,42 @@ export function Sidebar() {
 
   const menuItems = [
     { icon: Home, label: t("sidebar.dashboard"), href: "/dashboard", enabled: true },
+    { icon: Award, label: t("sidebar.certificates"), href: "/certificates", enabled: true },
     { icon: History, label: t("sidebar.activity"), href: "/activity", enabled: true },
     { icon: Zap, label: t("sidebar.consumption"), href: "/consumption", enabled: true },
   ]
+
+  // Role-based items
+  if (session && session.admin_cooperative_ids.length > 0) {
+    menuItems.push({
+      icon: Building2,
+      label: t("sidebar.cooperative"),
+      href: "/dashboard/cooperative",
+      enabled: true,
+    })
+  }
+
+  if (session?.is_super_admin) {
+    menuItems.push({
+      icon: Shield,
+      label: t("sidebar.admin"),
+      href: "/dashboard/admin",
+      enabled: true,
+    })
+  }
+
+  const isActive = (href: string) => {
+    if (href === "/dashboard") return pathname === "/dashboard"
+    return pathname.startsWith(href)
+  }
 
   return (
     <aside className="hidden md:flex fixed left-0 top-0 bottom-0 w-64 bg-card border-r border-border flex-col">
       {/* Logo */}
       <div className="p-6 border-b border-border">
         <div className="flex items-center gap-2">
-          <div className="w-10 h-10 bg-[#F2C230] rounded-full flex items-center justify-center">
-            <Leaf className="w-6 h-6 text-[#0300AB]" />
+          <div className="w-10 h-10 bg-solar-yellow rounded-full flex items-center justify-center">
+            <Leaf className="w-6 h-6 text-foreground" />
           </div>
           <span className="text-2xl font-bold">BeEnergy</span>
         </div>
@@ -40,7 +67,7 @@ export function Sidebar() {
       <nav className="flex-1 p-4 space-y-2">
         {menuItems.map((item) => {
           const Icon = item.icon
-          const isActive = pathname === item.href
+          const active = isActive(item.href)
 
           return (
             <button
@@ -49,8 +76,8 @@ export function Sidebar() {
               disabled={!item.enabled}
               className={cn(
                 "w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-left",
-                isActive && "bg-primary/10 text-primary font-semibold",
-                !isActive && item.enabled && "hover:bg-muted text-foreground",
+                active && "bg-primary/10 text-primary font-semibold",
+                !active && item.enabled && "hover:bg-muted text-foreground",
                 !item.enabled && "opacity-50 cursor-not-allowed text-muted-foreground",
               )}
             >

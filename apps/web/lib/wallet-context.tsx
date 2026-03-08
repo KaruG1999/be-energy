@@ -25,7 +25,7 @@ interface WalletContextType {
   userProfile: UserProfile | null
   balances: MappedBalances
   xlmBalance: string | null
-  connectWallet: () => Promise<void>
+  connectWallet: () => Promise<string | null>
   disconnectWallet: () => void
   setUserProfile: (profile: UserProfile) => void
   updateBalances: () => Promise<void>
@@ -49,7 +49,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
   const [balances, setBalances] = useState<MappedBalances>({})
   const [isPending, setIsPending] = useState(true)
   const [network, setNetwork] = useState<string | null>(null)
-  const popupLock = useRef(false)
+  const walletRestored = useRef(false)
   const kit = typeof window !== "undefined" ? wallet() : null
 
   const updateBalances = useCallback(async () => {
@@ -81,51 +81,20 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
     const walletAddr = storage.getItem("walletAddress")
     const walletNetwork = storage.getItem("walletNetwork")
 
-    if (!address && walletAddr) {
+    if (!walletId) {
+      if (isConnected) nullify()
+      walletRestored.current = false
+      return
+    }
+
+    // Restore wallet state from localStorage — only once, using ref to avoid stale closure
+    if (!walletRestored.current && walletAddr) {
+      walletRestored.current = true
+      kit?.setWallet(walletId)
       setAddress(walletAddr)
       setShortAddress(`${walletAddr.slice(0, 6)}...${walletAddr.slice(-4)}`)
       setIsConnected(true)
       setNetwork(walletNetwork)
-    }
-
-    if (!walletId) {
-      if (isConnected) nullify()
-    } else {
-      if (popupLock.current) return
-
-      try {
-        popupLock.current = true
-        kit?.setWallet(walletId)
-
-        if (walletId !== "freighter" && walletAddr) return
-
-        if (!kit) return
-
-        const [a, n] = await Promise.all([
-          kit.getAddress(),
-          kit.getNetwork(),
-        ])
-
-        if (!a.address) {
-          storage.setItem("walletId", "")
-        }
-
-        if (a.address !== address) {
-          storage.setItem("walletAddress", a.address)
-          setAddress(a.address)
-          setShortAddress(`${a.address.slice(0, 6)}...${a.address.slice(-4)}`)
-          setIsConnected(true)
-          setNetwork(n.network)
-        }
-      } catch (e) {
-        nullify()
-        // Only log if there's a meaningful error (not empty object from missing wallet)
-        if (e && Object.keys(e as object).length > 0) {
-          console.error("Wallet state error:", e)
-        }
-      } finally {
-        popupLock.current = false
-      }
     }
   }
 
@@ -181,10 +150,18 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
     }
   }, [])
 
-  const connectWallet = async () => {
+  const connectWallet = async (): Promise<string | null> => {
     try {
-      await stellarConnect()
-      // The wallet state will be updated by the polling mechanism
+      const result = await stellarConnect()
+      if (result?.address) {
+        walletRestored.current = true
+        setAddress(result.address)
+        setShortAddress(`${result.address.slice(0, 6)}...${result.address.slice(-4)}`)
+        setIsConnected(true)
+        setNetwork(result.network || null)
+        return result.address
+      }
+      return null
     } catch (error) {
       console.error("Error connecting wallet:", error)
       throw error
@@ -195,8 +172,6 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
     try {
       await stellarDisconnect()
       nullify()
-      setUserProfileState(null)
-      localStorage.removeItem("userProfile")
     } catch (error) {
       console.error("Error disconnecting wallet:", error)
     }

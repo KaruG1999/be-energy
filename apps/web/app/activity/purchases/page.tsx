@@ -9,7 +9,7 @@ import { Sidebar } from "@/components/sidebar"
 import { DashboardHeader } from "@/components/dashboard-header"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { ArrowLeft, ShoppingCart, Loader2, AlertCircle } from "lucide-react"
+import { ArrowLeft, ArrowDownLeft, Loader2, AlertCircle } from "lucide-react"
 
 function formatDate(isoString: string): string {
   const date = new Date(isoString)
@@ -40,7 +40,6 @@ export default function PurchasesPage() {
   const twoMonthsAgo = new Date()
   twoMonthsAgo.setMonth(twoMonthsAgo.getMonth() - 2)
 
-  // Incoming payments to this address within the last 2 months
   const purchases = payments.filter((p) => {
     const isIncoming = p.to === address
     const withinRange = new Date(p.created_at) >= twoMonthsAgo
@@ -64,11 +63,11 @@ export default function PurchasesPage() {
             <CardHeader>
               <div className="flex items-center gap-3">
                 <div className="p-3 rounded-lg bg-success/10">
-                  <ShoppingCart className="w-6 h-6 text-success" />
+                  <ArrowDownLeft className="w-6 h-6 text-success" />
                 </div>
                 <div>
-                  <CardTitle className="text-xl md:text-2xl">{t("activity.purchases")}</CardTitle>
-                  <CardDescription>{t("activity.purchasesDescription")}</CardDescription>
+                  <CardTitle className="text-xl md:text-2xl">{t("activity.received")}</CardTitle>
+                  <CardDescription>{t("activity.receivedDescription")}</CardDescription>
                 </div>
               </div>
             </CardHeader>
@@ -103,7 +102,7 @@ export default function PurchasesPage() {
                           className="flex items-center gap-3 p-4 rounded-lg hover:bg-muted transition-colors border border-border"
                         >
                           <div className="flex-shrink-0">
-                            <ShoppingCart className="w-5 h-5 text-success" />
+                            <ArrowDownLeft className="w-5 h-5 text-success" />
                           </div>
                           <div className="flex-1 min-w-0">
                             <p className="font-medium truncate text-sm md:text-base capitalize">
@@ -120,7 +119,7 @@ export default function PurchasesPage() {
                       )
                     })
                   ) : (
-                    <div className="text-center py-8 text-muted-foreground">{t("activity.noPurchases")}</div>
+                    <div className="text-center py-8 text-muted-foreground">{t("activity.noReceived")}</div>
                   )}
                 </div>
               )}

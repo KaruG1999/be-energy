@@ -34,6 +34,17 @@ export async function requireMember(coopId: string): Promise<Session | NextRespo
   return session
 }
 
+export async function requireSuperAdmin(): Promise<Session | NextResponse> {
+  const result = await requireAuth()
+  if (result instanceof NextResponse) return result
+
+  const session = result
+  if (!session.is_super_admin) {
+    return NextResponse.json({ error: "Super admin access required" }, { status: 403 })
+  }
+  return session
+}
+
 export async function optionalAuth(): Promise<Session | null> {
   return getSession()
 }

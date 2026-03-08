@@ -30,37 +30,56 @@ function getKit(): StellarWalletsKit {
 
 export type MappedBalances = Record<string, Horizon.HorizonApi.BalanceLine>;
 
-export const connectWallet = async (): Promise<void> => {
+export interface ConnectResult {
+  address: string
+  network: string
+}
+
+export const connectWallet = async (): Promise<ConnectResult | null> => {
   const kit = getKit();
+  let resolveResult: (r: ConnectResult | null) => void;
+  const resultPromise = new Promise<ConnectResult | null>((resolve) => {
+    resolveResult = resolve;
+  });
+
   await kit.openModal({
     modalTitle: "Conectar Wallet",
     onWalletSelected: (option: ISupportedWallet) => {
       const selectedId = option.id;
       kit.setWallet(selectedId);
 
-      void kit.getAddress().then((address) => {
-        if (address.address) {
-          storage.setItem("walletId", selectedId);
-          storage.setItem("walletAddress", address.address);
-        } else {
+      kit.getAddress().then(async (addrResult) => {
+        if (!addrResult.address) {
           storage.setItem("walletId", "");
           storage.setItem("walletAddress", "");
+          resolveResult(null);
+          return;
         }
-      });
 
-      if (selectedId === "freighter" || selectedId === "hot-wallet") {
-        void kit.getNetwork().then((network) => {
-          if (network.network && network.networkPassphrase) {
-            storage.setItem("walletNetwork", network.network);
-            storage.setItem("networkPassphrase", network.networkPassphrase);
-          } else {
+        storage.setItem("walletId", selectedId);
+        storage.setItem("walletAddress", addrResult.address);
+
+        let networkStr = "";
+        if (selectedId === "freighter" || selectedId === "hot-wallet") {
+          try {
+            const netResult = await kit.getNetwork();
+            networkStr = netResult.network || "";
+            storage.setItem("walletNetwork", networkStr);
+            storage.setItem("networkPassphrase", netResult.networkPassphrase || "");
+          } catch {
             storage.setItem("walletNetwork", "");
             storage.setItem("networkPassphrase", "");
           }
-        });
-      }
+        }
+
+        resolveResult({ address: addrResult.address, network: networkStr });
+      }).catch(() => {
+        resolveResult(null);
+      });
     },
   });
+
+  return resultPromise;
 };
 
 export const disconnectWallet = async (): Promise<void> => {

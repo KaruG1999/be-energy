@@ -3,58 +3,53 @@
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { useWallet } from "@/lib/wallet-context"
+import { useAuth } from "@/lib/auth-context"
 import { useI18n } from "@/lib/i18n-context"
 import { Button } from "@/components/ui/button"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { LanguageSelector } from "@/components/language-selector"
 import { WalletConfirmationModal } from "@/components/wallet-confirmation-modal"
 import { ProfileSetupModal } from "@/components/profile-setup-modal"
-import { Zap, TrendingUp, BarChart3 } from "lucide-react"
+import { Zap, Award, BarChart3 } from "lucide-react"
 
 export default function LandingPage() {
   const { isConnected, connectWallet, userProfile, setUserProfile } = useWallet()
+  const { login, isAuthenticated } = useAuth()
   const { t } = useI18n()
   const router = useRouter()
   const [showConfirmModal, setShowConfirmModal] = useState(false)
   const [showProfileSetup, setShowProfileSetup] = useState(false)
 
-  // Navigate to dashboard when connected and profile is set
+  // Redirect if already authenticated with profile (e.g. page refresh with valid session cookie)
   useEffect(() => {
-    if (isConnected && userProfile) {
+    if (isConnected && isAuthenticated && userProfile) {
       router.push("/dashboard")
     }
-  }, [isConnected, userProfile, router])
-
-  // Show profile setup when wallet is connected but no profile yet
-  useEffect(() => {
-    if (isConnected && !userProfile && !showProfileSetup) {
-      setShowConfirmModal(false)
-      setShowProfileSetup(true)
-    }
-  }, [isConnected, userProfile, showProfileSetup])
+  }, [isConnected, isAuthenticated, userProfile, router])
 
   const handleConnectClick = () => {
     setShowConfirmModal(true)
   }
 
   const handleConfirmConnection = async () => {
-    try {
-      await connectWallet()
-      // Don't close modal here - wait for isConnected to be true via useEffect
-    } catch (error) {
-      // Error is handled by WalletConfirmationModal
-      console.error("[v0] Connection failed:", error)
+    const walletAddress = await connectWallet()
+    if (!walletAddress) throw new Error("Wallet connection cancelled")
+    await login(walletAddress)
+    if (userProfile) {
+      router.push("/dashboard")
+    } else {
+      setShowProfileSetup(true)
     }
   }
 
   const handleProfileComplete = (name: string, avatar: string | null) => {
     setUserProfile({ name, avatar })
     setShowProfileSetup(false)
-    // Navigation will happen via useEffect
+    router.push("/dashboard")
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0300AB] via-[#1B3659] to-[#059669] dark:from-[#020075] dark:via-[#0f1f38] dark:to-[#034832] flex flex-col">
+    <div className="min-h-screen bg-gradient-to-br from-[#FEC800] via-[#FA9A4B] to-[#3DDC97] dark:from-[#4A3B00] dark:via-[#3D2510] dark:to-[#0F3D28] flex flex-col">
       {/* Header */}
       <header className="fixed top-0 left-0 right-0 z-50 glass-card">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
@@ -90,7 +85,7 @@ export default function LandingPage() {
           <h1 className="text-4xl md:text-5xl lg:text-7xl font-bold text-white mb-6 text-balance">
             {t("landing.title")}
           </h1>
-          <p className="text-lg md:text-xl lg:text-2xl text-[#8DE8F2] mb-12 md:mb-16 text-pretty px-4">
+          <p className="text-lg md:text-xl lg:text-2xl text-white/80 mb-12 md:mb-16 text-pretty px-4">
             {t("landing.subtitle")}
           </p>
           <Button
@@ -107,27 +102,27 @@ export default function LandingPage() {
       <section className="container mx-auto px-4 py-12 md:py-20">
         <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-6 md:gap-8 max-w-6xl mx-auto">
           <div className="glass-card p-6 md:p-8 rounded-2xl text-center hover:scale-105 transition-transform">
-            <div className="w-14 h-14 md:w-16 md:h-16 bg-[#059669] rounded-full flex items-center justify-center mx-auto mb-4">
-              <Zap className="w-7 h-7 md:w-8 md:h-8 text-white" />
+            <div className="w-14 h-14 md:w-16 md:h-16 bg-[#3DDC97] rounded-full flex items-center justify-center mx-auto mb-4">
+              <Zap className="w-7 h-7 md:w-8 md:h-8 text-[#18191A]" />
             </div>
             <h3 className="text-xl md:text-2xl font-bold text-white mb-3">{t("landing.feature.generate.title")}</h3>
-            <p className="text-[#8DE8F2] text-sm md:text-base">{t("landing.feature.generate.description")}</p>
+            <p className="text-white/80 text-sm md:text-base">{t("landing.feature.generate.description")}</p>
           </div>
 
           <div className="glass-card p-6 md:p-8 rounded-2xl text-center hover:scale-105 transition-transform">
-            <div className="w-14 h-14 md:w-16 md:h-16 bg-[#F2C230] rounded-full flex items-center justify-center mx-auto mb-4">
-              <TrendingUp className="w-7 h-7 md:w-8 md:h-8 text-[#0300AB]" />
+            <div className="w-14 h-14 md:w-16 md:h-16 bg-[#FEC800] rounded-full flex items-center justify-center mx-auto mb-4">
+              <Award className="w-7 h-7 md:w-8 md:h-8 text-[#18191A]" />
             </div>
             <h3 className="text-xl md:text-2xl font-bold text-white mb-3">{t("landing.feature.trade.title")}</h3>
-            <p className="text-[#8DE8F2] text-sm md:text-base">{t("landing.feature.trade.description")}</p>
+            <p className="text-white/80 text-sm md:text-base">{t("landing.feature.trade.description")}</p>
           </div>
 
           <div className="glass-card p-6 md:p-8 rounded-2xl text-center hover:scale-105 transition-transform sm:col-span-2 md:col-span-1">
-            <div className="w-14 h-14 md:w-16 md:h-16 bg-[#8DE8F2] rounded-full flex items-center justify-center mx-auto mb-4">
-              <BarChart3 className="w-7 h-7 md:w-8 md:h-8 text-[#0300AB]" />
+            <div className="w-14 h-14 md:w-16 md:h-16 bg-[#C590FC] rounded-full flex items-center justify-center mx-auto mb-4">
+              <BarChart3 className="w-7 h-7 md:w-8 md:h-8 text-[#18191A]" />
             </div>
             <h3 className="text-xl md:text-2xl font-bold text-white mb-3">{t("landing.feature.manage.title")}</h3>
-            <p className="text-[#8DE8F2] text-sm md:text-base">{t("landing.feature.manage.description")}</p>
+            <p className="text-white/80 text-sm md:text-base">{t("landing.feature.manage.description")}</p>
           </div>
         </div>
       </section>
@@ -135,7 +130,7 @@ export default function LandingPage() {
       {/* Footer */}
       <footer className="container mx-auto px-4 py-8 md:py-12 border-t border-white/10">
         <div className="flex flex-col md:flex-row items-center justify-between gap-4 max-w-6xl mx-auto">
-          <div className="flex gap-4 md:gap-6 text-[#8DE8F2] text-sm md:text-base">
+          <div className="flex gap-4 md:gap-6 text-white/80 text-sm md:text-base">
             <a href="#" className="hover:text-white transition-colors">
               {t("landing.footer.docs")}
             </a>
@@ -146,7 +141,7 @@ export default function LandingPage() {
               X
             </a>
           </div>
-          <p className="text-[#8DE8F2] text-sm md:text-base">{t("landing.footer.powered")}</p>
+          <p className="text-white/80 text-sm md:text-base">{t("landing.footer.powered")}</p>
         </div>
       </footer>
 

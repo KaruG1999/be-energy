@@ -1,6 +1,6 @@
 import type React from "react"
 import type { Metadata, Viewport } from "next"
-import { Poppins, Lato } from "next/font/google"
+import { Inter } from "next/font/google"
 import { Analytics } from "@vercel/analytics/next"
 import "./globals.css"
 import { WalletProvider } from "@/lib/wallet-context"
@@ -8,21 +8,15 @@ import { AuthProvider } from "@/lib/auth-context"
 import { ThemeProvider } from "@/lib/theme-context"
 import { I18nProvider } from "@/lib/i18n-context"
 
-const poppins = Poppins({
+const inter = Inter({
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
-  variable: "--font-poppins",
-})
-
-const lato = Lato({
-  subsets: ["latin"],
-  weight: ["400", "700"],
-  variable: "--font-lato",
+  variable: "--font-inter",
 })
 
 export const metadata: Metadata = {
   title: "BeEnergy - Energía Verde Tokenizada",
-  description: "Genera, consume y comercializa kWh en tu comunidad cooperativa sobre Stellar blockchain",
+  description: "Genera energía renovable y certifícala como activo digital trazable en blockchain Stellar",
   generator: "v0.app",
   icons: {
     icon: [
@@ -44,7 +38,7 @@ export const metadata: Metadata = {
 }
 
 export const viewport: Viewport = {
-  themeColor: "#0300AB",
+  themeColor: "#FEC800",
   width: "device-width",
   initialScale: 1,
 }
@@ -56,7 +50,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es">
-      <body className={`${poppins.variable} ${lato.variable} antialiased`}>
+      <body className={`${inter.variable} font-sans antialiased`}>
         <ThemeProvider>
           <I18nProvider>
             <WalletProvider>

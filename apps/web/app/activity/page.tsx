@@ -9,7 +9,7 @@ import { Sidebar } from "@/components/sidebar"
 import { DashboardHeader } from "@/components/dashboard-header"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { ArrowLeft, ShoppingCart, Send, ArrowDownLeft, ArrowUpRight, Loader2, AlertCircle } from "lucide-react"
+import { ArrowLeft, ArrowDownLeft, ArrowUpRight, Loader2, AlertCircle } from "lucide-react"
 import Link from "next/link"
 
 function formatDate(isoString: string): string {
@@ -58,11 +58,11 @@ export default function ActivityPage() {
                 <CardHeader>
                   <div className="flex items-center gap-3">
                     <div className="p-3 rounded-lg bg-success/10 group-hover:bg-success/20 transition-colors">
-                      <ShoppingCart className="w-6 h-6 text-success" />
+                      <ArrowDownLeft className="w-6 h-6 text-success" />
                     </div>
                     <div>
-                      <CardTitle className="text-xl">{t("activity.purchases")}</CardTitle>
-                      <CardDescription>{t("activity.purchasesDescription")}</CardDescription>
+                      <CardTitle className="text-xl">{t("activity.received")}</CardTitle>
+                      <CardDescription>{t("activity.receivedDescription")}</CardDescription>
                     </div>
                   </div>
                 </CardHeader>
@@ -77,11 +77,11 @@ export default function ActivityPage() {
                 <CardHeader>
                   <div className="flex items-center gap-3">
                     <div className="p-3 rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
-                      <Send className="w-6 h-6 text-primary" />
+                      <ArrowUpRight className="w-6 h-6 text-primary" />
                     </div>
                     <div>
-                      <CardTitle className="text-xl">{t("activity.sales")}</CardTitle>
-                      <CardDescription>{t("activity.salesDescription")}</CardDescription>
+                      <CardTitle className="text-xl">{t("activity.sent")}</CardTitle>
+                      <CardDescription>{t("activity.sentDescription")}</CardDescription>
                     </div>
                   </div>
                 </CardHeader>

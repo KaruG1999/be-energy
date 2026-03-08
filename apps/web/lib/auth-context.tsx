@@ -8,14 +8,16 @@ interface AuthSession {
   stellar_address: string
   cooperative_ids: string[]
   admin_cooperative_ids: string[]
+  is_super_admin: boolean
 }
 
 interface AuthContextType {
   session: AuthSession | null
   isLoading: boolean
   isAuthenticated: boolean
-  login: () => Promise<void>
+  login: (walletAddress?: string) => Promise<void>
   logout: () => Promise<void>
+  refreshSession: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -45,18 +47,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     checkSession()
   }, [])
 
-  // Auto-logout if wallet disconnects or address changes
+  // Auto-logout if address changes to a different wallet
   useEffect(() => {
-    if (!isLoading && session) {
-      if (!isConnected || (address && address !== session.stellar_address)) {
-        setSession(null)
-        fetch("/api/auth/logout", { method: "POST" }).catch(() => {})
-      }
+    if (!isLoading && session && address && address !== session.stellar_address) {
+      setSession(null)
+      fetch("/api/auth/logout", { method: "POST" }).catch(() => {})
     }
-  }, [isConnected, address, session, isLoading])
+  }, [address, session, isLoading])
 
-  const login = useCallback(async () => {
-    if (!address || !kit) {
+  const login = useCallback(async (walletAddress?: string) => {
+    const addr = walletAddress || address
+    if (!addr || !kit) {
       throw new Error("Wallet not connected")
     }
 
@@ -64,7 +65,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const challengeRes = await fetch("/api/auth/challenge", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ stellar_address: address }),
+      body: JSON.stringify({ stellar_address: addr }),
     })
 
     if (!challengeRes.ok) {
@@ -74,17 +75,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const { challenge } = await challengeRes.json()
 
-    // 2. Sign with wallet
-    const messageBytes = new TextEncoder().encode(challenge)
-    const { signedMessage } = await kit.signMessage(messageBytes)
-    const signature = Buffer.from(signedMessage).toString("base64")
+    // 2. Sign with wallet — kit.signMessage() takes a string and returns { signedMessage: string (base64) }
+    let signature: string
+    try {
+      const result = await kit.signMessage(challenge, { address: addr })
+      signature = result.signedMessage
+    } catch (signErr) {
+      throw new Error("Failed to sign message with wallet")
+    }
 
     // 3. Verify
     const verifyRes = await fetch("/api/auth/verify", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        stellar_address: address,
+        stellar_address: addr,
         challenge,
         signature,
       }),
@@ -98,6 +103,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const sessionData = await verifyRes.json()
     setSession(sessionData)
   }, [address, kit])
+
+  const refreshSession = useCallback(async () => {
+    try {
+      const res = await fetch("/api/auth/refresh", { method: "POST" })
+      if (res.ok) {
+        const data = await res.json()
+        setSession(data)
+      }
+    } catch {
+      // silent fail
+    }
+  }, [])
 
   const logout = useCallback(async () => {
     await fetch("/api/auth/logout", { method: "POST" }).catch(() => {})
@@ -113,6 +130,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isAuthenticated: session !== null,
         login,
         logout,
+        refreshSession,
       }}
     >
       {children}

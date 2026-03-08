@@ -4,6 +4,7 @@ export interface JWTPayload {
   sub: string // stellar_address
   cooperative_ids: string[]
   admin_cooperative_ids: string[]
+  is_super_admin: boolean
   iat: number
   exp: number
 }

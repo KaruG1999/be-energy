@@ -50,11 +50,19 @@ export async function POST(req: NextRequest) {
     // Resolve roles
     const roles = await resolveRoles(stellar_address)
 
+    // Check super admin
+    const superAdminAddresses = (process.env.SUPER_ADMIN_ADDRESSES || "")
+      .split(",")
+      .map((a) => a.trim())
+      .filter(Boolean)
+    const is_super_admin = superAdminAddresses.includes(stellar_address)
+
     // Sign JWT
     const token = await signJWT({
       sub: stellar_address,
       cooperative_ids: roles.cooperative_ids,
       admin_cooperative_ids: roles.admin_cooperative_ids,
+      is_super_admin,
     })
 
     // Set cookie and return session info
@@ -62,6 +70,7 @@ export async function POST(req: NextRequest) {
       stellar_address,
       cooperative_ids: roles.cooperative_ids,
       admin_cooperative_ids: roles.admin_cooperative_ids,
+      is_super_admin,
     })
 
     return setSessionCookie(response, token)

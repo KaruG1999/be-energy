@@ -12,5 +12,6 @@ export async function GET() {
     stellar_address: session.sub,
     cooperative_ids: session.cooperative_ids,
     admin_cooperative_ids: session.admin_cooperative_ids,
+    is_super_admin: session.is_super_admin ?? false,
   })
 }

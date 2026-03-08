@@ -9,7 +9,7 @@ import { Sidebar } from "@/components/sidebar"
 import { DashboardHeader } from "@/components/dashboard-header"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { ArrowLeft, Send, Loader2, AlertCircle } from "lucide-react"
+import { ArrowLeft, ArrowUpRight, Loader2, AlertCircle } from "lucide-react"
 
 function formatDate(isoString: string): string {
   const date = new Date(isoString)
@@ -40,7 +40,6 @@ export default function SalesPage() {
   const twoMonthsAgo = new Date()
   twoMonthsAgo.setMonth(twoMonthsAgo.getMonth() - 2)
 
-  // Outgoing payments from this address within the last 2 months
   const sales = payments.filter((p) => {
     const isOutgoing = p.from === address && p.to !== address
     const withinRange = new Date(p.created_at) >= twoMonthsAgo
@@ -64,11 +63,11 @@ export default function SalesPage() {
             <CardHeader>
               <div className="flex items-center gap-3">
                 <div className="p-3 rounded-lg bg-primary/10">
-                  <Send className="w-6 h-6 text-primary" />
+                  <ArrowUpRight className="w-6 h-6 text-primary" />
                 </div>
                 <div>
-                  <CardTitle className="text-xl md:text-2xl">{t("activity.sales")}</CardTitle>
-                  <CardDescription>{t("activity.salesDescription")}</CardDescription>
+                  <CardTitle className="text-xl md:text-2xl">{t("activity.sent")}</CardTitle>
+                  <CardDescription>{t("activity.sentDescription")}</CardDescription>
                 </div>
               </div>
             </CardHeader>
@@ -103,7 +102,7 @@ export default function SalesPage() {
                           className="flex items-center gap-3 p-4 rounded-lg hover:bg-muted transition-colors border border-border"
                         >
                           <div className="flex-shrink-0">
-                            <Send className="w-5 h-5 text-primary" />
+                            <ArrowUpRight className="w-5 h-5 text-primary" />
                           </div>
                           <div className="flex-1 min-w-0">
                             <p className="font-medium truncate text-sm md:text-base capitalize">
@@ -120,7 +119,7 @@ export default function SalesPage() {
                       )
                     })
                   ) : (
-                    <div className="text-center py-8 text-muted-foreground">{t("activity.noSales")}</div>
+                    <div className="text-center py-8 text-muted-foreground">{t("activity.noSent")}</div>
                   )}
                 </div>
               )}

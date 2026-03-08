@@ -50,6 +50,23 @@ export async function POST(req: NextRequest) {
     const session = await requireAdmin(v.data.cooperative_id)
     if (!isSession(session)) return session
 
+    // Ensure prosumer exists for this member address
+    const { data: existingProsumer } = await supabase
+      .from("prosumers")
+      .select("id")
+      .eq("stellar_address", v.data.member_stellar_address)
+      .single()
+
+    if (!existingProsumer) {
+      await supabase
+        .from("prosumers")
+        .insert({
+          stellar_address: v.data.member_stellar_address,
+          cooperative_id: v.data.cooperative_id,
+          role: "prosumer",
+        })
+    }
+
     const { data, error } = await supabase
       .from("meters")
       .insert({
