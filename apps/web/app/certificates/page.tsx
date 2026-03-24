@@ -191,7 +191,13 @@ export default function CertificatesPage() {
     status: statusFilter === "all" ? undefined : statusFilter,
   });
 
-  const handleStatusQuickFilter = (nextStatus: "available" | "retired") => {
+  const handleStatusQuickFilter = (
+    nextStatus: "all" | "available" | "retired",
+  ) => {
+    if (nextStatus === "all") {
+      setStatusFilter("all");
+      return;
+    }
     setStatusFilter((current) => (current === nextStatus ? "all" : nextStatus));
   };
 
@@ -242,6 +248,9 @@ export default function CertificatesPage() {
                 icon={<Zap className="w-5 h-5 text-energy-green" />}
                 containerClassName="bg-energy-green/10 border-energy-green/20"
                 valueClassName="text-energy-green"
+                interactive
+                isActive={statusFilter === "all"}
+                onClick={() => handleStatusQuickFilter("all")}
               />
 
               <CertificateStatCard
